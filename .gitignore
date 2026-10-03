@@ -2,6 +2,8 @@
 node_modules/
 coverage/
 test-data/
+*.sav
+*.sav.*
 
 # Local benchmark and profiler output
 bench/results/
