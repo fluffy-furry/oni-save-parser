@@ -9,6 +9,10 @@
 - Fix hash and accessory constructors modifying shared state.
 - Improve type inference for known behaviors.
 - Add round-trip verification, performance benchmarks, and automated tests.
+- Add display labels for saved identifiers, with visible fallbacks for unknown
+  IDs.
+- Add explicit unit conversions and clarify duplicant attributes, skills, and
+  XP.
 
 ## 14.0.0
 

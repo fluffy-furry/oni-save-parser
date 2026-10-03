@@ -35,8 +35,8 @@ for (const minion of minions?.gameObjects ?? []) {
   minion.scale.x = 0.5;
   minion.scale.y = 0.5;
 
-  const skills = getBehavior(minion, AIAttributeLevelsBehavior);
-  for (const attribute of skills?.templateData.saveLoadLevels ?? []) {
+  const attributes = getBehavior(minion, AIAttributeLevelsBehavior);
+  for (const attribute of attributes?.templateData.saveLoadLevels ?? []) {
     attribute.level = 10;
   }
 }
@@ -73,6 +73,78 @@ permissions; reading and writing files belongs to the caller.
 All model types are exported from `src/index.ts`. The lossless, JSON-compatible
 64-bit `LongNum` representation remains `{ unsigned, lower, upper }`; integers
 are never coerced into imprecise JavaScript numbers.
+
+## Human-readable values
+
+Saved IDs and numbers often differ from the game's labels and displayed values.
+Use `getDisplayInfo(kind, id)` to describe an identifier without changing it:
+
+```ts
+import { getDisplayInfo, kelvinToCelsius } from "./src/index.ts";
+
+const attribute = getDisplayInfo("attribute", "Digging");
+console.log(attribute.label);
+console.log(attribute.rawId);
+console.log(getDisplayInfo("skill", "Mining1").label);
+console.log(kelvinToCelsius(300));
+```
+
+Supported kinds are `element`, `prefab`, `attribute`, `skill`, `skillGroup`,
+`trait`, `geyser`, `disease`, and `healthState`. String inputs are internal IDs,
+not human labels. The result preserves `rawId`; `internalId` contains the
+internal name when supplied or resolved, or `null` for unresolved numeric IDs.
+`labelSource` is `"english"`, `"internal"`, or `"unknown"`. Internal fallbacks
+are not verified translations or proof that an ID is recognized. Unknown IDs and
+hashes remain visible through fallback labels. Keep the original identifiers in
+data passed to a save writer.
+
+The `disease` kind describes germ contamination identifiers, not active sickness
+records. `healthState` describes injury severity, not hit points: both `Perfect`
+and `Alright` have the injury label "None". Labels are not unique identifiers.
+
+English labels were checked against the installed game's localization and
+runtime metadata (Steam build 24423041). This is display metadata, not a claim
+of support for that game's save format. Labels can differ by game version,
+language, DLC, or mods; unknown identifiers still round-trip unchanged.
+
+Unit conversions are explicit and do not modify the save:
+
+| Saved/display units            | Helpers                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| Kelvin ↔ Celsius               | `kelvinToCelsius`, `celsiusToKelvin`                                          |
+| Kelvin ↔ Fahrenheit            | `kelvinToFahrenheit`, `fahrenheitToKelvin`                                    |
+| Calories ↔ kilocalories        | `caloriesToKilocalories`, `kilocaloriesToCalories`                            |
+| Seconds ↔ cycles (600 seconds) | `secondsToCycles`, `cyclesToSeconds`                                          |
+| Object units ↔ kilograms       | `unitsToKilograms(units, massPerUnit)`, `kilogramsToUnits(mass, massPerUnit)` |
+
+Temperature helpers convert absolute temperatures, not temperature differences.
+Cycle helpers convert elapsed durations, not the one-based cycle number in the
+UI. Mass conversion needs the object's kilograms per unit; a field named `units`
+does not by itself establish its mass. Percentages need their reference values,
+too: hit points are not a health percentage without maximum health.
+
+Geyser `*Roll` fields are generation inputs, not rates, durations, or
+percentages. Calculating output requires the game's nonlinear mapping,
+type-specific bounds, and applicable modifiers. Output while erupting differs
+from average output including dormancy. The geyser object's `ElementID`
+describes its own material, not the material it emits.
+
+Duplicants have several separate progression systems:
+
+- `AttributeLevels.saveLoadLevels` stores trained attribute levels and progress
+  toward each attribute's next level. Displayed totals also include modifiers
+  from traits, effects, equipment, and skills. Setting `level = 10`, as in the
+  example above, does not guarantee a displayed total of 10.
+- `MinionResume.MasteryBySkillID` stores skill-tree mastery flags. Purchased and
+  game-granted skills can have different skill-point and morale accounting;
+  mastery alone does not describe every capability.
+- `MinionResume.AptitudeBySkillGroup` stores interests by hashed skill group,
+  rather than attribute levels or individual skill IDs. For example, the Mining
+  group, the `Mining1` skill, and the `Digging` attribute are distinct concepts.
+- `MinionResume.totalExperienceGained` is cumulative skill-point progression XP,
+  separate from per-attribute XP. Available points, experience to the next
+  point, and morale need require the applicable game's rules and character
+  context.
 
 ## Save compatibility
 

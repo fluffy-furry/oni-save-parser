@@ -20,6 +20,7 @@ import {
 
 export * from "./save-structure/index.ts";
 export * from "./save-structure/data-types/index.ts";
+export * from "./display/index.ts";
 export * from "./binary-serializer/types.ts";
 export { ParseError } from "./parser/index.ts";
 
