@@ -1,8 +1,8 @@
-import { GeyserType } from "../../../const-data/geysers/geyser-type";
+import { GeyserType } from "../../../const-data/geysers/geyser-type.ts";
 
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { GameObjectBehavior } from "../game-object-behavior.ts";
 
-import { BehaviorName } from "./types";
+import type { BehaviorName } from "./types.ts";
 
 export const GeyserBehavior: BehaviorName<GeyserBehavior> = "Geyser";
 export interface GeyserBehavior extends GameObjectBehavior {

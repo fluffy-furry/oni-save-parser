@@ -1,6 +1,7 @@
-import { LongNum } from "../../binary-serializer";
+import type { LongNum } from "../../binary-serializer/index.ts";
 
-import { UnparseIterator } from "./unparser";
+import type { UnparseIterator } from "./unparser.ts";
+import type { DataWriter } from "../../binary-serializer/data-writer/interfaces.ts";
 
 export interface BasicWriteInstruction {
   type: "write";
@@ -15,7 +16,7 @@ export function writeByte(value: number): WriteByteInstruction {
   return {
     type: "write",
     dataType: "byte",
-    value
+    value,
   };
 }
 
@@ -27,7 +28,7 @@ export function writeSByte(value: number): WriteSByteInstruction {
   return {
     type: "write",
     dataType: "signed-byte",
-    value
+    value,
   };
 }
 
@@ -36,12 +37,12 @@ export interface WriteBytesInstruction extends BasicWriteInstruction {
   value: ArrayBuffer | ArrayBufferView;
 }
 export function writeBytes(
-  bytes: ArrayBuffer | ArrayBufferView
+  bytes: ArrayBuffer | ArrayBufferView,
 ): WriteBytesInstruction {
   return {
     type: "write",
     dataType: "byte-array",
-    value: bytes
+    value: bytes,
   };
 }
 
@@ -53,7 +54,7 @@ export function writeUInt16(value: number): WriteUInt16Instruction {
   return {
     type: "write",
     dataType: "uint-16",
-    value
+    value,
   };
 }
 
@@ -65,7 +66,7 @@ export function writeInt16(value: number): WriteInt16Instruction {
   return {
     type: "write",
     dataType: "int-16",
-    value
+    value,
   };
 }
 
@@ -77,7 +78,7 @@ export function writeUInt32(value: number): WriteUInt32Instruction {
   return {
     type: "write",
     dataType: "uint-32",
-    value
+    value,
   };
 }
 
@@ -89,7 +90,7 @@ export function writeInt32(value: number): WriteInt32Instruction {
   return {
     type: "write",
     dataType: "int-32",
-    value
+    value,
   };
 }
 
@@ -101,7 +102,7 @@ export function writeUInt64(value: LongNum): WriteUInt64Instruction {
   return {
     type: "write",
     dataType: "uint-64",
-    value
+    value,
   };
 }
 
@@ -113,7 +114,7 @@ export function writeInt64(value: LongNum): WriteInt64Instruction {
   return {
     type: "write",
     dataType: "int-64",
-    value
+    value,
   };
 }
 
@@ -125,7 +126,7 @@ export function writeSingle(value: number): WriteSingleInstruction {
   return {
     type: "write",
     dataType: "single",
-    value
+    value,
   };
 }
 
@@ -137,7 +138,7 @@ export function writeDouble(value: number): WriteDoubleInstruction {
   return {
     type: "write",
     dataType: "double",
-    value
+    value,
   };
 }
 
@@ -149,19 +150,21 @@ export function writeChars(value: string): WriteCharsInstruction {
   return {
     type: "write",
     dataType: "chars",
-    value
+    value,
   };
 }
 
 export interface WriteKleiStringInstruction extends BasicWriteInstruction {
   dataType: "klei-string";
-  value: string;
+  value: string | null;
 }
-export function writeKleiString(value: string): WriteKleiStringInstruction {
+export function writeKleiString(
+  value: string | null,
+): WriteKleiStringInstruction {
   return {
     type: "write",
     dataType: "klei-string",
-    value
+    value,
   };
 }
 
@@ -171,7 +174,7 @@ export interface GetWriterPositionInstruction extends BasicWriteInstruction {
 export function getWriterPosition(): GetWriterPositionInstruction {
   return {
     type: "write",
-    dataType: "writer-position"
+    dataType: "writer-position",
   };
 }
 
@@ -180,17 +183,27 @@ export interface DataLengthToken {
   startPosition: number;
 }
 
+/** Prevent length prefixes from wrapping; legacy advisory lengths may be negative. */
+export function checkedDataLength(length: number): number {
+  if (
+    !Number.isInteger(length) || length < -0x80000000 || length > 0x7fffffff
+  ) {
+    throw new RangeError("Data length must fit in a signed 32-bit integer.");
+  }
+  return length;
+}
+
 export interface WriteDataLengthBeginInstruction extends BasicWriteInstruction {
   dataType: "data-length:begin";
-  startPosition?: number;
+  startPosition?: number | undefined;
 }
 export function writeDataLengthBegin(
-  startPosition?: number
+  startPosition?: number,
 ): WriteDataLengthBeginInstruction {
   return {
     type: "write",
     dataType: "data-length:begin",
-    startPosition
+    startPosition,
   };
 }
 
@@ -199,30 +212,31 @@ export interface WriteDataLengthEndInstruction extends BasicWriteInstruction {
   token: DataLengthToken;
 }
 export function writeDataLengthEnd(
-  token: DataLengthToken
+  token: DataLengthToken,
 ): WriteDataLengthEndInstruction {
   return {
     type: "write",
     dataType: "data-length:end",
-    token
+    token,
   };
 }
 
 export interface WriteCompressedInstruction extends BasicWriteInstruction {
   dataType: "compressed";
-  unparser: UnparseIterator;
+  unparser: UnparseIterator<unknown>;
 }
 export function writeCompressed(
-  unparser: UnparseIterator
+  unparser: UnparseIterator<unknown>,
 ): WriteCompressedInstruction {
   return {
     type: "write",
     dataType: "compressed",
-    unparser
+    unparser,
   };
 }
 
 export type WriteInstruction =
+  | WriteWithInstruction
   | WriteByteInstruction
   | WriteSByteInstruction
   | WriteBytesInstruction
@@ -243,7 +257,20 @@ export type WriteInstruction =
 
 export type WriteDataTypes = WriteInstruction["dataType"];
 
-export function isWriteInstruction(value: any): value is WriteInstruction {
-  // TODO: Use a symbol or something to ensure this is a real parse instruction.
-  return value && value.type === "write";
+/** Execute an operation-local compiled encoder as one trampoline instruction. */
+export interface WriteWithInstruction extends BasicWriteInstruction {
+  dataType: "with";
+  callback: (writer: DataWriter) => void;
+}
+
+export function writeWith(
+  callback: (writer: DataWriter) => void,
+): WriteWithInstruction {
+  return { type: "write", dataType: "with", callback };
+}
+
+export function isWriteInstruction(value: unknown): value is WriteInstruction {
+  return typeof value === "object" && value !== null &&
+    "type" in value && value.type === "write" &&
+    "dataType" in value && typeof value.dataType === "string";
 }

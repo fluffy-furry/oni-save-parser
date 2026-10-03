@@ -1,20 +1,18 @@
-import { Vector2I } from "../../save-structure/data-types";
-
-import { typed } from "../../utils";
+import type { Vector2I } from "../../save-structure/data-types/index.ts";
 
 export interface SaveGameData {
   // TODO: Several type-template types in here.  Type them.
 
-  gasConduitFlow: any;
-  liquidConduitFlow: any;
+  gasConduitFlow: unknown;
+  liquidConduitFlow: unknown;
   simActiveRegionMin: Vector2I;
   simActiveRegionMax: Vector2I;
-  fallingWater: any;
-  unstableGround: any;
-  worldDetail: any;
+  fallingWater: unknown;
+  unstableGround: unknown;
+  worldDetail: unknown;
   customGameSettings: CustomGameSettings;
   debugWasUsed: boolean;
-  autoPrioritizeRoles: any;
+  autoPrioritizeRoles: unknown;
   advancedPersonalPriorities: boolean;
   savedInfo: {
     discoveredSurface: boolean;
@@ -27,9 +25,9 @@ export interface CustomGameSettings {
   CurrentQualityLevelsBySetting: QualityLevelSettings[];
 }
 
-export type QualityLevelSetting<TKey, TValues> = [
+export type QualityLevelSetting<TKey, TValues extends readonly string[]> = [
   TKey,
-  (TValues extends (infer Value)[] ? Value : never)
+  TValues[number],
 ];
 export type QualityLevelSettings =
   | QualityLevelSetting<"ImmuneSystem", typeof ImmuneSystemSettings>
@@ -40,44 +38,41 @@ export type QualityLevelSettings =
   | QualityLevelSetting<"SandboxMode", typeof SandboxModeSettings>;
 
 export const ImmuneSystemSettings = [
-  typed("Compromised"),
-  typed("Weak"),
-  typed("Default"),
-  typed("Strong"),
-  typed("Invincible")
-];
+  "Compromised",
+  "Weak",
+  "Default",
+  "Strong",
+  "Invincible",
+] as const;
 export const StressSettings = [
-  typed("Doomed"),
-  typed("Pessimistic"),
-  typed("Default"),
-  typed("Optimistic"),
-  typed("Indomitable")
-];
+  "Doomed",
+  "Pessimistic",
+  "Default",
+  "Optimistic",
+  "Indomitable",
+] as const;
 export const MoraleSettings = [
-  typed("VeryHard"),
-  typed("Hard"),
-  typed("Default"),
-  typed("Easy"),
-  typed("Disabled")
-];
+  "VeryHard",
+  "Hard",
+  "Default",
+  "Easy",
+  "Disabled",
+] as const;
 export const CalorieBurnSettings = [
-  typed("VeryHard"),
-  typed("Hard"),
-  typed("Default"),
-  typed("Easy"),
-  typed("Disabled")
-];
-export const StressBreaksSettings = ["Disabled", "Default"];
-export const SandboxModeSettings = ["Disabled", "Enabled"];
+  "VeryHard",
+  "Hard",
+  "Default",
+  "Easy",
+  "Disabled",
+] as const;
+export const StressBreaksSettings = ["Disabled", "Default"] as const;
+export const SandboxModeSettings = ["Disabled", "Enabled"] as const;
 
-export const QualityLevelSettingValues: Record<
-  QualityLevelSettings[0],
-  string[]
-> = {
+export const QualityLevelSettingValues = {
   ImmuneSystem: ImmuneSystemSettings,
   Stress: StressSettings,
   StressBreaks: StressBreaksSettings,
   Morale: MoraleSettings,
   CalorieBurn: CalorieBurnSettings,
-  SandboxMode: SandboxModeSettings
-};
+  SandboxMode: SandboxModeSettings,
+} satisfies Record<QualityLevelSettings[0], readonly string[]>;

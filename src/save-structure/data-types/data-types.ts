@@ -27,11 +27,11 @@ export const quat_zero: Readonly<Quaternion> = Object.freeze({
   x: 0,
   y: 0,
   z: 0,
-  w: 0
+  w: 0,
 });
 export const quat_default: Readonly<Quaternion> = Object.freeze({
   x: 0,
   y: 0,
   z: 0,
-  w: 1
+  w: 1,
 });

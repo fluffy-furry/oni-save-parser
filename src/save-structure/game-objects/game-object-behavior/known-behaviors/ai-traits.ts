@@ -1,5 +1,5 @@
-import { GameObjectBehavior } from "../game-object-behavior";
-import { BehaviorName } from "./types";
+import type { GameObjectBehavior } from "../game-object-behavior.ts";
+import type { BehaviorName } from "./types.ts";
 
 export const AITraitsBehavior: BehaviorName<AITraitsBehavior> =
   "Klei.AI.Traits";
@@ -69,5 +69,5 @@ export const AI_TRAIT_IDS: string[] = [
   "Fashionable",
   "Climacophobic",
   "SolitarySleeper",
-  "Workaholic"
+  "Workaholic",
 ];

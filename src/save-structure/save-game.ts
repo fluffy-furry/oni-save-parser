@@ -1,9 +1,9 @@
-import { SaveGameHeader } from "./header";
-import { TypeTemplates } from "./type-templates";
-import { SaveGameWorld } from "./world";
-import { SaveGameSettings } from "./settings";
-import { GameObjectGroups } from "./game-objects";
-import { SaveGameData } from "./game-data";
+import type { SaveGameHeader } from "./header/index.ts";
+import type { TypeTemplates } from "./type-templates/index.ts";
+import type { SaveGameWorld } from "./world/index.ts";
+import type { SaveGameSettings } from "./settings/index.ts";
+import type { GameObjectGroups } from "./game-objects/index.ts";
+import type { SaveGameData } from "./game-data/index.ts";
 
 export interface SaveGame {
   header: SaveGameHeader;

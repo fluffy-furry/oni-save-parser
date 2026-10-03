@@ -6,15 +6,15 @@ export enum HealthState {
   Critical,
   Incapacitated,
   Dead,
-  Invincible
+  Invincible,
 }
 
 export function getHealthStateName(stateId: number): string | null {
   if (
-    isNaN(stateId) ||
-    !Object.prototype.hasOwnProperty.call(HealthState, stateId)
+    !Number.isInteger(stateId) ||
+    !Object.hasOwn(HealthState, stateId)
   ) {
     return null;
   }
-  return HealthState[stateId];
+  return HealthState[stateId] ?? null;
 }

@@ -1,8 +1,8 @@
-import { MinionSkillGroup } from "../../../const-data/skills/skill-group";
+import { MinionSkillGroup } from "../../../const-data/skills/skill-group.ts";
 
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { GameObjectBehavior } from "../game-object-behavior.ts";
 
-import { BehaviorName } from "./types";
+import type { BehaviorName } from "./types.ts";
 
 export const MinionResumeBehavior: BehaviorName<MinionResumeBehavior> =
   "MinionResume";

@@ -1,12 +1,12 @@
-import { GameObjectBehavior } from "../../game-object-behavior";
+import type { GameObjectBehavior } from "../../game-object-behavior.ts";
 
-import { BehaviorName } from "../types";
+import type { BehaviorName } from "../types.ts";
 
 export const MinionModifiersBehavior: BehaviorName<MinionModifiersBehavior> =
   "MinionModifiers";
 export interface MinionModifiersBehavior extends GameObjectBehavior {
   name: "MinionModifiers";
-  templateData: {};
+  templateData: Record<string, unknown>;
   extraData: MinionModifiersExtraData;
 }
 
@@ -29,7 +29,7 @@ export interface MinionModifiersExtraData {
 
 export interface MinionModificationInstance {
   name: string;
-  value: any;
+  value: unknown;
 }
 
 export interface AIAmountInstance extends MinionModificationInstance {

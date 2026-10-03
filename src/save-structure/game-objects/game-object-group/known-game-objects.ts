@@ -245,5 +245,5 @@ export enum KnownGameObjectTypes {
   DreckoPlasticEgg = "DreckoPlasticEgg",
   HatchVeggieEgg = "HatchVeggieEgg",
   LadderUnderConstruction = "LadderUnderConstruction",
-  TileUnderConstruction = "TileUnderConstruction"
+  TileUnderConstruction = "TileUnderConstruction",
 }

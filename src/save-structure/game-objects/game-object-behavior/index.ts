@@ -1,5 +1,5 @@
-export * from "./game-object-behavior";
+export * from "./game-object-behavior.ts";
 
-export * from "./known-behaviors";
+export * from "./known-behaviors/index.ts";
 
-export * from "./utils";
+export * from "./utils.ts";

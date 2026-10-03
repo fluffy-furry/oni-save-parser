@@ -1,3 +1,3 @@
-export * from "./instructions";
-export * from "./interceptors";
-export * from "./parse-tagger";
+export * from "./instructions.ts";
+export * from "./interceptors.ts";
+export * from "./parse-tagger.ts";

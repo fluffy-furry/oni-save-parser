@@ -1,34 +1,34 @@
 import {
-  ParseIterator,
-  UnparseIterator,
+  type ParseIterator,
   readInt32,
-  writeInt32,
   readKleiString,
-  writeKleiString
-} from "../../parser";
+  type UnparseIterator,
+  writeInt32,
+  writeKleiString,
+} from "../../parser/index.ts";
 
-import {
-  TypeTemplates,
+import type {
+  TypeTemplate,
   TypeTemplateMember,
-  TypeTemplate
-} from "../../save-structure/type-templates";
+  TypeTemplates,
+} from "../../save-structure/type-templates/index.ts";
 
-import { validateDotNetIdentifierName } from "../../utils";
+import { validateDotNetIdentifierName } from "../../utils.ts";
 
-import { parseTypeInfo, unparseTypeInfo } from "./type-info-parser";
+import { parseTypeInfo, unparseTypeInfo } from "./type-info-parser.ts";
 
 export function* parseTemplates(): ParseIterator<TypeTemplates> {
-  const templateCount = yield readInt32();
-  const templates: TypeTemplates = new Array(templateCount);
+  const templateCount = checkedCount(yield readInt32(), "template count");
+  const templates: TypeTemplates = [];
   for (let i = 0; i < templateCount; i++) {
     const template = yield* parseTemplate();
-    templates[i] = template;
+    templates.push(template);
   }
   return templates;
 }
 
 export function* unparseTemplates(templates: TypeTemplates): UnparseIterator {
-  yield writeInt32(templates.length);
+  yield writeInt32(checkedCount(templates.length, "template count"));
   for (const template of templates) {
     yield* unparseTemplate(template);
   }
@@ -37,42 +37,36 @@ export function* unparseTemplates(templates: TypeTemplates): UnparseIterator {
 function* parseTemplate(): ParseIterator<TypeTemplate> {
   const name = validateDotNetIdentifierName(yield readKleiString());
 
-  const fieldCount = yield readInt32();
-  const propCount = yield readInt32();
+  const fieldCount = checkedCount(yield readInt32(), "field count");
+  const propCount = checkedCount(yield readInt32(), "property count");
 
-  const fields: TypeTemplateMember[] = new Array(fieldCount);
+  const fields: TypeTemplateMember[] = [];
   for (let i = 0; i < fieldCount; i++) {
     const name = validateDotNetIdentifierName(yield readKleiString());
     const type = yield* parseTypeInfo();
-    fields[i] = {
-      name,
-      type
-    };
+    fields.push({ name, type });
   }
 
-  const properties: TypeTemplateMember[] = new Array(propCount);
+  const properties: TypeTemplateMember[] = [];
   for (let i = 0; i < propCount; i++) {
     const name = validateDotNetIdentifierName(yield readKleiString());
     const type = yield* parseTypeInfo();
-    properties[i] = {
-      name,
-      type
-    };
+    properties.push({ name, type });
   }
 
   const template: TypeTemplate = {
     name,
     fields,
-    properties
+    properties,
   };
   return template;
 }
 
-function* unparseTemplate(template: TypeTemplate) {
+function* unparseTemplate(template: TypeTemplate): UnparseIterator {
   yield writeKleiString(template.name);
 
-  yield writeInt32(template.fields.length);
-  yield writeInt32(template.properties.length);
+  yield writeInt32(checkedCount(template.fields.length, "field count"));
+  yield writeInt32(checkedCount(template.properties.length, "property count"));
 
   for (const field of template.fields) {
     const { name, type } = field;
@@ -85,4 +79,14 @@ function* unparseTemplate(template: TypeTemplate) {
     yield writeKleiString(name);
     yield* unparseTypeInfo(type);
   }
+}
+
+function checkedCount(value: unknown, label: string): number {
+  if (
+    typeof value !== "number" || !Number.isInteger(value) || value < 0 ||
+    value > 0x7fffffff
+  ) {
+    throw new RangeError(`Invalid ${label}: ${String(value)}`);
+  }
+  return value;
 }

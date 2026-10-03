@@ -1,5 +1,4 @@
-import { SimHashName } from "./template-enumerations";
-import { typedKeys } from "../../utils";
+import type { SimHashName } from "./template-enumerations/index.ts";
 
 export interface SpaceDestinationType {
   name: string;
@@ -32,173 +31,172 @@ export enum SpaceDestinationTypeName {
   ChlorinePlanet = "ChlorinePlanet",
   SaltDesertPlanet = "SaltDesertPlanet",
   Wormhole = "Wormhole",
-  Earth = "Earth"
+  Earth = "Earth",
 }
-export const SpaceDestinationTypeNames = typedKeys(SpaceDestinationTypeName);
-
-export const SpaceDestinationTypes: Record<
+export const SpaceDestinationTypeNames = Object.values(
   SpaceDestinationTypeName,
-  SpaceDestinationType
-> = {
+);
+
+export const SpaceDestinationTypes = {
   Satellite: {
     name: "Satellite",
     maximumMass: 64000000,
     minimumMass: 63994000,
     materials: ["Steel", "Copper", "Glass"],
-    entities: []
+    entities: [],
   },
   MetallicAsteroid: {
     name: "MetallicAsteroid",
     maximumMass: 128000000,
     minimumMass: 127988000,
     materials: ["Iron", "Copper", "Obsidian"],
-    entities: ["HatchMetal"]
+    entities: ["HatchMetal"],
   },
   RockyAsteroid: {
     name: "RockyAsteroid",
     maximumMass: 128000000,
     minimumMass: 127988000,
     materials: ["Cuprite", "SedimentaryRock", "IgneousRock"],
-    entities: ["HatchHard"]
+    entities: ["HatchHard"],
   },
   CarbonaceousAsteroid: {
     name: "CarbonaceousAsteroid",
     maximumMass: 128000000,
     minimumMass: 127988000,
     materials: ["RefinedCarbon", "Carbon", "Diamond"],
-    entities: []
+    entities: [],
   },
   IcyDwarf: {
     name: "IcyDwarf",
     maximumMass: 256000000,
     minimumMass: 255982000,
     materials: ["Ice", "SolidCarbonDioxide", "SolidOxygen"],
-    entities: ["ColdBreatherSeed", "ColdWheatSeed"]
+    entities: ["ColdBreatherSeed", "ColdWheatSeed"],
   },
   OrganicDwarf: {
     name: "OrganicDwarf",
     maximumMass: 256000000,
     minimumMass: 255982000,
     materials: ["SlimeMold", "Algae", "ContaminatedOxygen"],
-    entities: ["Moo", "GasGrassSeed"]
+    entities: ["Moo", "GasGrassSeed"],
   },
   DustyMoon: {
     name: "DustyMoon",
     maximumMass: 256000000,
     minimumMass: 255982000,
     materials: ["Regolith", "MaficRock", "SedimentaryRock"],
-    entities: []
+    entities: [],
   },
   TerraPlanet: {
     name: "TerraPlanet",
     maximumMass: 384000000,
     minimumMass: 383980000,
     materials: ["Water", "Algae", "Oxygen", "Dirt"],
-    entities: ["PrickleFlowerSeed", "PacuEgg"]
+    entities: ["PrickleFlowerSeed", "PacuEgg"],
   },
   VolcanoPlanet: {
     name: "VolcanoPlanet",
     maximumMass: 384000000,
     minimumMass: 383980000,
     materials: ["Magma", "IgneousRock", "Katairite"],
-    entities: []
+    entities: [],
   },
   GasGiant: {
     name: "GasGiant",
     maximumMass: 384000000,
     minimumMass: 383980000,
     materials: ["Mercury", "Hydrogen"],
-    entities: []
+    entities: [],
   },
   IceGiant: {
     name: "IceGiant",
     maximumMass: 384000000,
     minimumMass: 383980000,
     materials: ["Ice", "SolidCarbonDioxide", "SolidOxygen", "SolidMethane"],
-    entities: []
+    entities: [],
   },
   SaltDwarf: {
     name: "SaltDwarf",
     maximumMass: 256000000,
     minimumMass: 255982000,
     materials: ["SaltWater", "SolidCarbonDioxide", "Brine"],
-    entities: ["SaltPlantSeed"]
+    entities: ["SaltPlantSeed"],
   },
   RustPlanet: {
     name: "RustPlanet",
     maximumMass: 384000000,
     minimumMass: 383980000,
     materials: ["Rust", "SolidCarbonDioxide"],
-    entities: []
+    entities: [],
   },
   ForestPlanet: {
     name: "ForestPlanet",
     maximumMass: 384000000,
     minimumMass: 384000000,
     materials: ["AluminumOre", "SolidOxygen"],
-    entities: ["Squirrel", "ForestTreeSeed"]
+    entities: ["Squirrel", "ForestTreeSeed"],
   },
   RedDwarf: {
     name: "RedDwarf",
     maximumMass: 256000000,
     minimumMass: 255982000,
     materials: ["Aluminum", "LiquidMethane", "Fossil"],
-    entities: []
+    entities: [],
   },
   GoldAsteroid: {
     name: "GoldAsteroid",
     maximumMass: 128000000,
     minimumMass: 127988000,
     materials: ["Gold", "Fullerene", "FoolsGold"],
-    entities: []
+    entities: [],
   },
   HydrogenGiant: {
     name: "HydrogenGiant",
     maximumMass: 384000000,
     minimumMass: 383980000,
     materials: ["LiquidHydrogen", "Water", "Niobium"],
-    entities: []
+    entities: [],
   },
   OilyAsteroid: {
     name: "OilyAsteroid",
     maximumMass: 128000000,
     minimumMass: 127988000,
     materials: ["SolidMethane", "SolidCarbonDioxide", "CrudeOil", "Petroleum"],
-    entities: []
+    entities: [],
   },
   ShinyPlanet: {
     name: "ShinyPlanet",
     maximumMass: 384000000,
     minimumMass: 383980000,
     materials: ["Tungsten", "Wolframite"],
-    entities: []
+    entities: [],
   },
   ChlorinePlanet: {
     name: "ChlorinePlanet",
     maximumMass: 256000000,
     minimumMass: 255982000,
     materials: ["SolidChlorine", "BleachStone"],
-    entities: []
+    entities: [],
   },
   SaltDesertPlanet: {
     name: "SaltDesertPlanet",
     maximumMass: 384000000,
     minimumMass: 383980000,
     materials: ["Salt", "CrushedRock"],
-    entities: ["Crab"]
+    entities: ["Crab"],
   },
   Wormhole: {
     name: "Wormhole",
     maximumMass: 0,
     minimumMass: 0,
     materials: ["Vacuum"],
-    entities: []
+    entities: [],
   },
   Earth: {
     name: "Earth",
     maximumMass: 0,
     minimumMass: 0,
     materials: [],
-    entities: []
-  }
-};
+    entities: [],
+  },
+} satisfies Record<SpaceDestinationTypeName, SpaceDestinationType>;

@@ -1,4 +1,26 @@
+# Local dependencies, generated reports, and private save files
 node_modules/
-.vscode/launch.json
+coverage/
 test-data/
-/lib/tsconfig.tsbuildinfo
+
+# Local benchmark and profiler output
+bench/results/
+*.cpuprofile
+*.heapprofile
+*.heapsnapshot
+*.prof
+*.lcov
+
+# Editor and operating-system metadata
+.vscode/
+.idea/
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+
+# Local logs and temporary files
+*.log
+*.tmp

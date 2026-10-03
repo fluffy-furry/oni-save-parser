@@ -1,19 +1,14 @@
-import { deflate } from "pako";
-
-import { DataWriter } from "./interfaces";
-
-import { ArrayDataWriter } from "./array-writer";
+import { deflateSync } from "node:zlib";
+import { ArrayDataWriter } from "./array-writer.ts";
 
 export class ZlibDataWriter extends ArrayDataWriter {
-  getBytes(): ArrayBuffer {
-    const bytes = super.getBytesView();
-    return deflate(bytes as any, {
-      windowBits: 15
-    }).buffer;
+  override getBytes(): ArrayBuffer {
+    // zlib returns a Buffer that can cover only part of its backing allocation.
+    return Uint8Array.from(this.getBytesView()).buffer;
   }
 
-  getBytesView(): Uint8Array {
+  override getBytesView(): Uint8Array {
     // Cannot make a nice efficient view here, since we deflate on-demand.
-    return new Uint8Array(this.getBytes());
+    return deflateSync(super.getBytesView(), { windowBits: 15 });
   }
 }

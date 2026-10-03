@@ -1,29 +1,29 @@
 import {
-  ParseIterator,
-  UnparseIterator,
+  type ParseIterator,
   readKleiString,
-  writeKleiString
-} from "../../parser";
+  type UnparseIterator,
+  writeKleiString,
+} from "../../parser/index.ts";
 
-import {
+import type {
   TemplateParser,
-  TemplateUnparser
-} from "../type-templates/template-data-parser";
+  TemplateUnparser,
+} from "../type-templates/template-data-parser.ts";
 
-import { validateDotNetIdentifierName } from "../../utils";
+import { validateDotNetIdentifierName } from "../../utils.ts";
 
-import { SaveGameData } from "./game-data";
+import type { SaveGameData } from "./game-data.ts";
 
 const AssemblyTypeName = "Game+GameSaveData";
 
 export function* parseGameData({
-  parseByTemplate
+  parseByTemplate,
 }: TemplateParser): ParseIterator<SaveGameData> {
   const typeName = yield readKleiString();
   validateDotNetIdentifierName(typeName);
   if (typeName !== AssemblyTypeName) {
     throw new Error(
-      `Expected type name "${AssemblyTypeName}" but got "${typeName}".`
+      `Expected type name "${AssemblyTypeName}" but got "${typeName}".`,
     );
   }
 
@@ -33,7 +33,7 @@ export function* parseGameData({
 
 export function* writeGameData(
   gameData: SaveGameData,
-  { unparseByTemplate }: TemplateUnparser
+  { unparseByTemplate }: TemplateUnparser,
 ): UnparseIterator {
   yield writeKleiString(AssemblyTypeName);
   yield* unparseByTemplate(AssemblyTypeName, gameData);

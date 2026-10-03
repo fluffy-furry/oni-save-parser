@@ -1,8 +1,8 @@
-import { Accessory } from "../../../const-data/accessories";
+import { Accessory } from "../../../const-data/accessories.ts";
 
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { GameObjectBehavior } from "../game-object-behavior.ts";
 
-import { BehaviorName } from "./types";
+import type { BehaviorName } from "./types.ts";
 
 export const AccessorizerBehavior: BehaviorName<AccessorizerBehavior> =
   "Accessorizer";

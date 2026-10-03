@@ -1,3 +1,15 @@
+## Unreleased
+
+- Migrate to Deno and TypeScript modules.
+- Remove npm dependencies and the old CommonJS/browser builds.
+- Speed up save parsing and writing, especially for large object collections.
+- Add streaming save output to reduce memory usage.
+- Add an optional limit on decompressed save size.
+- Fix buffer offsets, overflowing data lengths, and malformed save handling.
+- Fix hash and accessory constructors modifying shared state.
+- Improve type inference for known behaviors.
+- Add round-trip verification, performance benchmarks, and automated tests.
+
 ## 14.0.0
 
 - Bump version lack to 7.31
@@ -47,7 +59,8 @@
 
 - Update SimHashes
 - Update SpacecraftManager types.
-- Greatly loosened strictness of .NET identifier validation. This should improve compatibility with mods, especially non-english ones.
+- Greatly loosened strictness of .NET identifier validation. This should improve
+  compatibility with mods, especially non-english ones.
 
 ## 8.1.0
 
@@ -96,7 +109,8 @@
 
 ## 6.0.0
 
-- Fix parsing 7.8. Requires backwards-incompatible change; no longer able to parse 7.7 and below.
+- Fix parsing 7.8. Requires backwards-incompatible change; no longer able to
+  parse 7.7 and below.
 
 ## 5.2.1
 
@@ -113,7 +127,8 @@
 
 ## 5.1.4
 
-- Add missing Foodie and SimpleTastes traits. Remove non-traits Caring and MedicalAid from traits list.
+- Add missing Foodie and SimpleTastes traits. Remove non-traits Caring and
+  MedicalAid from traits list.
 
 ## 5.1.3
 
@@ -161,9 +176,9 @@
 
 ## 4.0.0
 
-- Rework accessory type code to handle non-ordinal and prefix-clashing accessory names.
-  -- prefix clash: "hair" vs "hair_always"
-  -- non-ordinal: "hair_always_DEFAULT"
+- Rework accessory type code to handle non-ordinal and prefix-clashing accessory
+  names. -- prefix clash: "hair" vs "hair_always" -- non-ordinal:
+  "hair_always_DEFAULT"
 
 ## 3.2.1
 
@@ -188,10 +203,8 @@
 
 ## 3.0.0
 
-- Include hard-coded enumeration and other constant data.
-  -- SimHashes
-  -- GeyserType
-  -- HealthState
+- Include hard-coded enumeration and other constant data. -- SimHashes --
+  GeyserType -- HealthState
 
 ## 2.2.1
 
@@ -199,7 +212,9 @@
 
 ## 2.2.0
 
-- Added support for parsing extra data of Storage behavior.
-  Enables modifying the stored contents of all game objects that store items. This includes storage compactors, hydrogen and coal generators, and various other internal buffers used by buildings and creatures.
+- Added support for parsing extra data of Storage behavior. Enables modifying
+  the stored contents of all game objects that store items. This includes
+  storage compactors, hydrogen and coal generators, and various other internal
+  buffers used by buildings and creatures.
 - Export TypeTemplate and related typings
 - Export known GameObject types

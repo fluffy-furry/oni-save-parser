@@ -1,5 +1,7 @@
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { GameObjectBehavior } from "../game-object-behavior.ts";
+
+declare const behaviorType: unique symbol;
 
 export type BehaviorName<T extends GameObjectBehavior> = string & {
-  __behaviorTypeMetadata?: T & never;
+  readonly [behaviorType]?: T;
 };

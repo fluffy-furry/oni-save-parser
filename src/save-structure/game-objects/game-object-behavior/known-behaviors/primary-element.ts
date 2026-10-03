@@ -1,10 +1,10 @@
-import { HashedString } from "../../../../save-structure/data-types";
+import { HashedString } from "../../../../save-structure/data-types/index.ts";
 
-import { SimHashes } from "../../../const-data";
+import { SimHashes } from "../../../const-data/index.ts";
 
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { GameObjectBehavior } from "../game-object-behavior.ts";
 
-import { BehaviorName } from "./types";
+import type { BehaviorName } from "./types.ts";
 
 export const PrimaryElementBehavior: BehaviorName<PrimaryElementBehavior> =
   "PrimaryElement";

@@ -1,46 +1,50 @@
 import {
-  ParseIterator,
-  UnparseIterator,
-  readKleiString,
-  readChars,
-  readInt32,
-  readCompressed,
-  writeCompressed,
-  writeKleiString,
-  writeChars,
-  writeInt32,
+  type ParseIterator,
   readBytes,
+  readChars,
+  readCompressed,
+  readInt32,
+  readKleiString,
+  type UnparseIterator,
   writeBytes,
-} from "../parser";
+  writeChars,
+  writeCompressed,
+  writeInt32,
+  writeKleiString,
+} from "../parser/index.ts";
 
-import { ParseContext, WriteContext } from "./parse-context";
+import type { ParseContext, WriteContext } from "./parse-context.ts";
 
-import { SaveGameHeader } from "./header";
-import { parseHeader, unparseHeader } from "./header/parser";
+import type { SaveGameHeader } from "./header/index.ts";
+import { parseHeader, unparseHeader } from "./header/parser.ts";
 
-import { TypeTemplates } from "./type-templates";
+import type { TypeTemplates } from "./type-templates/index.ts";
 import {
   parseTemplates,
   unparseTemplates,
-} from "./type-templates/template-parser";
+} from "./type-templates/template-parser.ts";
 import {
   parseByTemplate,
   unparseByTemplate,
-} from "./type-templates/template-data-parser";
+} from "./type-templates/template-data-parser.ts";
 
-import { SaveGameWorld } from "./world";
-import { parseWorld, unparseWorld } from "./world/parser";
+import type { SaveGameWorld } from "./world/index.ts";
+import { parseWorld, unparseWorld } from "./world/parser.ts";
 
-import { SaveGameSettings } from "./settings";
-import { parseSettings, unparseSettings } from "./settings/parser";
+import type { SaveGameSettings } from "./settings/index.ts";
+import { parseSettings, unparseSettings } from "./settings/parser.ts";
 
-import { GameObjectGroup } from "./game-objects";
-import { parseGameObjects, unparseGameObjects } from "./game-objects/parser";
+import type { GameObjectGroup } from "./game-objects/index.ts";
+import { parseGameObjects, unparseGameObjects } from "./game-objects/parser.ts";
 
-import { SaveGameData } from "./game-data";
-import { parseGameData, writeGameData } from "./game-data/parser";
-import { SaveGame } from "./save-game";
-import { validateVersion } from "./version-validator";
+import type { SaveGameData } from "./game-data/index.ts";
+import { parseGameData, writeGameData } from "./game-data/parser.ts";
+import type { SaveGame } from "./save-game.ts";
+import { validateVersion } from "./version-validator.ts";
+
+import { createTemplateLookup } from "./type-templates/template-lookup.ts";
+import { createCompiledTemplates } from "./type-templates/compiled-templates.ts";
+import { validateCollectionCount } from "./collection-count.ts";
 
 const SAVE_HEADER = "KSAV";
 
@@ -67,7 +71,8 @@ export interface SaveGameParserOptions {
 }
 
 export function* parseSaveGame(
-  options: SaveGameParserOptions = {}
+  options: SaveGameParserOptions = {},
+  useCompiledTemplates = false,
 ): ParseIterator<SaveGame> {
   const header: SaveGameHeader = yield* parseHeader();
 
@@ -79,7 +84,11 @@ export function* parseSaveGame(
 
   const templates: TypeTemplates = yield* parseTemplates();
 
-  const context = makeSaveParserContext(header, templates);
+  const context = makeSaveParserContext(
+    header,
+    templates,
+    useCompiledTemplates,
+  );
 
   let body: SaveGameBody;
 
@@ -112,9 +121,11 @@ function* parseSaveBody(context: ParseContext): ParseIterator<SaveGameBody> {
   const ksav: string = yield readChars(SAVE_HEADER.length);
   if (ksav !== SAVE_HEADER) {
     throw new Error(
-      `Failed to parse ksav header: Expected "${SAVE_HEADER}" but got "${ksav}" (${Array.from(
-        ksav
-      ).map((x) => x.charCodeAt(0))})`
+      `Failed to parse ksav header: Expected "${SAVE_HEADER}" but got "${ksav}" (${
+        Array.from(
+          ksav,
+        ).map((x) => x.charCodeAt(0))
+      })`,
     );
   }
   const versionMajor: number = yield readInt32();
@@ -143,20 +154,36 @@ function* parseSaveBody(context: ParseContext): ParseIterator<SaveGameBody> {
 
 function makeSaveParserContext(
   header: SaveGameHeader,
-  templates: TypeTemplates
+  templates: TypeTemplates,
+  useCompiledTemplates: boolean,
 ): ParseContext {
+  // Parsed templates are private until this save operation finishes.
+  const lookup = createTemplateLookup(templates);
+  const compiled = useCompiledTemplates
+    ? createCompiledTemplates(templates)
+    : undefined;
   return {
     ...header,
+    useDirectIO: useCompiledTemplates,
     parseByTemplate: <T>(templateName: string) =>
-      parseByTemplate<T>(templates, templateName),
+      parseByTemplate<T>(templates, templateName, lookup, compiled),
   };
 }
 
-export function* unparseSaveGame(saveGame: SaveGame): UnparseIterator {
+export function* unparseSaveGame(
+  saveGame: SaveGame,
+  useTemplateIndex = false,
+  useCompiledTemplates = false,
+): UnparseIterator {
   yield* unparseHeader(saveGame.header);
   yield* unparseTemplates(saveGame.templates);
 
-  const context = makeSaveWriterContext(saveGame.header, saveGame.templates);
+  const context = makeSaveWriterContext(
+    saveGame.header,
+    saveGame.templates,
+    useTemplateIndex,
+    useCompiledTemplates,
+  );
 
   if (saveGame.header.isCompressed) {
     yield writeCompressed(unparseSaveBody(saveGame, context));
@@ -167,14 +194,19 @@ export function* unparseSaveGame(saveGame: SaveGame): UnparseIterator {
 
 function* unparseSaveBody(
   saveGame: SaveGame,
-  context: WriteContext
+  context: WriteContext,
 ): UnparseIterator {
   yield writeKleiString("world");
 
   yield* unparseWorld(saveGame.world, context);
   yield* unparseSettings(saveGame.settings, context);
 
-  yield writeInt32(saveGame.simData.byteLength);
+  yield writeInt32(
+    validateCollectionCount(
+      saveGame.simData.byteLength,
+      "Simulation data byte",
+    ),
+  );
   yield writeBytes(saveGame.simData);
 
   yield writeChars(SAVE_HEADER);
@@ -189,10 +221,20 @@ function* unparseSaveBody(
 
 function makeSaveWriterContext(
   header: SaveGameHeader,
-  templates: TypeTemplates
+  templates: TypeTemplates,
+  useTemplateIndex: boolean,
+  useCompiledTemplates: boolean,
 ): WriteContext {
+  // Intercepted writes keep live array lookups because callbacks may mutate it.
+  // Otherwise a fresh index per write observes changes made between operations.
+  const lookup = useTemplateIndex ? createTemplateLookup(templates) : undefined;
+  const compiled = useCompiledTemplates
+    ? createCompiledTemplates(templates)
+    : undefined;
   return {
     ...header,
-    unparseByTemplate: unparseByTemplate.bind(null, templates),
+    useDirectIO: useCompiledTemplates,
+    unparseByTemplate: <T>(templateName: string, value: T) =>
+      unparseByTemplate(templates, templateName, value, lookup, compiled),
   };
 }

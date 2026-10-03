@@ -1,35 +1,36 @@
 import {
-  ParseIterator,
-  UnparseIterator,
+  type ParseIterator,
   readInt32,
-  writeInt32
-} from "../../parser";
+  type UnparseIterator,
+  writeInt32,
+} from "../../parser/index.ts";
 
-import {
+import type {
   TemplateParser,
-  TemplateUnparser
-} from "../type-templates/template-data-parser";
+  TemplateUnparser,
+} from "../type-templates/template-data-parser.ts";
+import { validateCollectionCount } from "../collection-count.ts";
 
-import { GameObjectGroup } from "./game-object-group";
+import type { GameObjectGroup } from "./game-object-group/index.ts";
 import {
   parseGameObjectGroup,
-  unparseGameObjectGroup
-} from "./game-object-group/parser";
+  unparseGameObjectGroup,
+} from "./game-object-group/parser.ts";
 
 export function* parseGameObjects(
-  templateParser: TemplateParser
+  templateParser: TemplateParser,
 ): ParseIterator<GameObjectGroup[]> {
-  const count = yield readInt32();
-  const groups: GameObjectGroup[] = new Array(count);
+  const count = validateCollectionCount(yield readInt32(), "Game object group");
+  const groups: GameObjectGroup[] = [];
   for (let i = 0; i < count; i++) {
-    groups[i] = yield* parseGameObjectGroup(templateParser);
+    groups.push(yield* parseGameObjectGroup(templateParser));
   }
   return groups;
 }
 
 export function* unparseGameObjects(
   lists: GameObjectGroup[],
-  templateWriter: TemplateUnparser
+  templateWriter: TemplateUnparser,
 ): UnparseIterator {
   yield writeInt32(lists.length);
   for (const group of lists) {

@@ -1,20 +1,23 @@
-import { createHashedStringEnum, HashedString } from "../../data-types";
+import {
+  createHashedStringEnum,
+  type HashedString,
+} from "../../data-types/index.ts";
 
 export const MinionSkillGroupNames = [
-  "Farming" as "Farming",
-  "Ranching" as "Ranching",
-  "Mining" as "Mining",
-  "Cooking" as "Cooking",
-  "Art" as "Art",
-  "Building" as "Building",
-  "Management" as "Management",
-  "Research" as "Research",
-  "Suits" as "Suits",
-  "Hauling" as "Hauling",
-  "Technicals" as "Technicals",
-  "MedicalAid" as "MedicalAid",
-  "Basekeeping" as "Basekeeping"
-];
+  "Farming",
+  "Ranching",
+  "Mining",
+  "Cooking",
+  "Art",
+  "Building",
+  "Management",
+  "Research",
+  "Suits",
+  "Hauling",
+  "Technicals",
+  "MedicalAid",
+  "Basekeeping",
+] as const;
 export type MinionSkillGroup = HashedString;
 
 export const MinionSkillGroup = createHashedStringEnum(MinionSkillGroupNames);

@@ -1,1 +1,1 @@
-export * from "./geyser-type";
+export * from "./geyser-type.ts";

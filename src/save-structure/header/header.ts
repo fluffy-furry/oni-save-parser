@@ -1,5 +1,3 @@
-import { Schema } from "jsonschema";
-
 export interface SaveGameHeader {
   buildVersion: number;
   headerVersion: number;
@@ -26,7 +24,11 @@ export interface SaveGameInfo {
   dlcId: string;
 }
 
-export const headerSchema: Schema = {
+/**
+ * Header shape metadata, retained for consumers using JSON Schema validators.
+ * Game info fields vary between game versions and deliberately remain open.
+ */
+export const headerSchema = {
   type: "object",
   properties: {
     buildVersion: {
@@ -43,4 +45,4 @@ export const headerSchema: Schema = {
     },
   },
   additionalProperties: false,
-};
+} as const;

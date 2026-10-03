@@ -1,4 +1,4 @@
-export * from "./game-object-group";
-export * from "./known-game-objects";
+export * from "./game-object-group.ts";
+export * from "./known-game-objects.ts";
 
-export * from "./utils";
+export * from "./utils.ts";

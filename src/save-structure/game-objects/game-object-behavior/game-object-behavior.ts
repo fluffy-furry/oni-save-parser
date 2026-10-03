@@ -9,7 +9,7 @@ export interface GameObjectBehavior {
    * A null value indicates a correctly parsed null instance.
    * If no template match was found, this property will be unset.
    */
-  templateData?: any | null;
+  templateData?: unknown;
 
   /**
    * If this behavior contains extra data known to the parser,
@@ -17,7 +17,7 @@ export interface GameObjectBehavior {
    * A null value may represent a succesfully parsed null value.
    * If no data is available or understood, this property will be unset.
    */
-  extraData?: any | null;
+  extraData?: unknown;
 
   /**
    * If extra data is known to exist but not understood,
@@ -25,5 +25,5 @@ export interface GameObjectBehavior {
    * If the extra data was parsed or not present, this
    * property will be unset.
    */
-  extraRaw?: ArrayBuffer;
+  extraRaw?: ArrayBuffer | undefined;
 }

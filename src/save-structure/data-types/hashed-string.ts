@@ -2,36 +2,44 @@ export interface HashedString {
   hash: number;
 }
 
-export function HashedString(str: string): HashedString {
-  let target: HashedString = (new.target || {}) as any;
-  target.hash = getSDBM32LowerHash(str);
-  Object.freeze(target);
-  return target;
+interface HashedStringFactory {
+  (str: string): HashedString;
+  new (str: string): HashedString;
 }
+
+/** Create a frozen hash value, with or without `new`. */
+export const HashedString = function HashedString(str: string): HashedString {
+  return Object.freeze(getHashedString(str));
+} as HashedStringFactory;
 
 export function getHashedString(str: string): HashedString {
   return {
-    hash: getSDBM32LowerHash(str)
+    hash: getSDBM32LowerHash(str),
   };
 }
 
-export type HashedStringEnum<T extends string> = Record<T, HashedString> &
-  Record<number, T>;
+export type HashedStringEnum<T extends string> =
+  & Record<T, HashedString>
+  & Record<number, T>;
 
-export function createHashedStringEnum<T extends string>(
-  strings: readonly T[]
+export function createHashedStringEnum<const T extends string>(
+  strings: readonly T[],
 ): HashedStringEnum<T> {
-  // Using T as a type here annoys the configuration lines below,
-  //  but it otherwise works fine.
-  const e: HashedStringEnum<string> = {} as any;
+  const entries: Record<string, HashedString | string> = {};
   for (const str of strings) {
-    e[str] = HashedString(str);
-    Object.defineProperty(e, e[str].hash, {
+    const hashed = HashedString(str);
+    Object.defineProperty(entries, str, {
+      value: hashed,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(entries, hashed.hash, {
       value: str,
-      enumerable: false
+      enumerable: false,
     });
   }
-  return e as HashedStringEnum<T>;
+  return entries as HashedStringEnum<T>;
 }
 
 /**
@@ -48,16 +56,9 @@ function getSDBM32LowerHash(str: string): number {
 
   let num = 0;
   for (let index = 0; index < str.length; ++index) {
-    // Need to re-cast to wrap.
-    num = str.charCodeAt(index) + (num << 6) + (num << 16) - num;
+    // Bitwise coercion reproduces unchecked signed 32-bit integer arithmetic.
+    num = (str.charCodeAt(index) + (num << 6) + (num << 16) - num) | 0;
   }
 
-  return castInt32(num);
-}
-
-// Because I dont feel like mathing today.
-const int32Converter = new Int32Array(1);
-function castInt32(val: number) {
-  int32Converter.set([val]);
-  return int32Converter[0];
+  return num;
 }

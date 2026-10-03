@@ -1,0 +1,28 @@
+{
+  "exports": "./src/index.ts",
+  "compilerOptions": {
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "tasks": {
+    "check": "deno check src/**/*.ts tools/*.ts tests/**/*.ts bench/*.ts",
+    "test": "deno test",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "bench": "deno bench bench/",
+    "verify": "deno fmt --check && deno lint && deno task check && deno test",
+    "roundtrip": "deno run --allow-read --allow-write tools/roundtrip.ts",
+    "profile": "deno run --allow-read --allow-write --allow-run tools/profile-save.ts",
+    "coverage": "deno test --coverage=coverage && deno coverage coverage --include=src/"
+  },
+  "exclude": [
+    ".vscode",
+    ".idea",
+    "coverage",
+    "test-data"
+  ]
+}

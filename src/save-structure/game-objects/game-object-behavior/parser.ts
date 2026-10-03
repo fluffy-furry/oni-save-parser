@@ -1,67 +1,87 @@
 import {
-  ParseIterator,
-  UnparseIterator,
   getReaderPosition,
+  type ParseIterator,
   readBytes,
   readInt32,
   readKleiString,
+  type UnparseIterator,
   writeBytes,
   writeDataLengthBegin,
   writeDataLengthEnd,
-  writeKleiString
-} from "../../../parser";
+  writeKleiString,
+} from "../../../parser/index.ts";
 
-import taggedParser from "../../../tagger/parse-tagger";
+import taggedParser from "../../../tagger/parse-tagger.ts";
 
-import { validateDotNetIdentifierName } from "../../../utils";
+import { validateDotNetIdentifierName } from "../../../utils.ts";
 
-import {
+import type {
   TemplateParser,
-  TemplateUnparser
-} from "../../type-templates/template-data-parser";
+  TemplateUnparser,
+} from "../../type-templates/template-data-parser.ts";
 
-import { GameObjectBehavior } from "./game-object-behavior";
+import type { GameObjectBehavior } from "./game-object-behavior.ts";
 
-interface ExtraDataParser {
-  parse(templateParser: TemplateParser): ParseIterator<any>;
-  unparse(value: any, templateUnparser: TemplateUnparser): UnparseIterator;
+interface ExtraDataParser<T = unknown> {
+  parse(templateParser: TemplateParser): ParseIterator<T>;
+  unparse(value: T, templateUnparser: TemplateUnparser): UnparseIterator;
 }
 
-import { StorageBehavior } from "./known-behaviors/storage";
+function registerExtraDataParser<T>(
+  parser: ExtraDataParser<T>,
+): ExtraDataParser {
+  return {
+    parse: parser.parse,
+    // The behavior name selects the payload schema. Keep this assertion at the
+    // registry boundary rather than leaking any into all parsed game objects.
+    unparse: (value, templates) => parser.unparse(value as T, templates),
+  };
+}
+
+import { StorageBehavior } from "./known-behaviors/storage/index.ts";
 import {
   parseStorageExtraData,
-  unparseStorageExtraData
-} from "./known-behaviors/storage/parser";
+  unparseStorageExtraData,
+} from "./known-behaviors/storage/parser.ts";
 
-import { MinionModifiersBehavior } from "./known-behaviors/minion-modifiers";
+import { MinionModifiersBehavior } from "./known-behaviors/minion-modifiers/index.ts";
 import {
   parseMinionModifiersExtraData,
-  unparseMinionModifiersExtraData
-} from "./known-behaviors/minion-modifiers/parser";
+  unparseMinionModifiersExtraData,
+} from "./known-behaviors/minion-modifiers/parser.ts";
 
-import { ModifiersBehavior } from "./known-behaviors/modifiers";
+import { ModifiersBehavior } from "./known-behaviors/modifiers/index.ts";
 import {
   parseModifiersExtraData,
-  unparseModifiersExtraData
-} from "./known-behaviors/modifiers/parser";
+  unparseModifiersExtraData,
+} from "./known-behaviors/modifiers/parser.ts";
 
-const EXTRA_DATA_PARSERS: Record<string, ExtraDataParser> = {
-  [StorageBehavior]: {
-    parse: parseStorageExtraData,
-    unparse: unparseStorageExtraData
-  },
-  [MinionModifiersBehavior]: {
-    parse: parseMinionModifiersExtraData,
-    unparse: unparseMinionModifiersExtraData
-  },
-  [ModifiersBehavior]: {
-    parse: parseModifiersExtraData,
-    unparse: unparseModifiersExtraData
-  }
-};
+const EXTRA_DATA_PARSERS = new Map<string, ExtraDataParser>([
+  [
+    StorageBehavior,
+    registerExtraDataParser({
+      parse: parseStorageExtraData,
+      unparse: unparseStorageExtraData,
+    }),
+  ],
+  [
+    MinionModifiersBehavior,
+    registerExtraDataParser({
+      parse: parseMinionModifiersExtraData,
+      unparse: unparseMinionModifiersExtraData,
+    }),
+  ],
+  [
+    ModifiersBehavior,
+    registerExtraDataParser({
+      parse: parseModifiersExtraData,
+      unparse: unparseModifiersExtraData,
+    }),
+  ],
+]);
 
 export function* parseGameObjectBehavior(
-  templateParser: TemplateParser
+  templateParser: TemplateParser,
 ): ParseIterator<GameObjectBehavior> {
   const name = yield readKleiString();
   validateDotNetIdentifierName(name);
@@ -71,12 +91,12 @@ export function* parseGameObjectBehavior(
 
 const parseNamedGameObjectBehavior = taggedParser(
   "GameObjectBehavior",
-  name => name,
-  function*(
+  (name) => name,
+  function* (
     name: string,
-    templateParser: TemplateParser
+    templateParser: TemplateParser,
   ): ParseIterator<GameObjectBehavior> {
-    let extraData: any | undefined;
+    let extraData: unknown;
     let extraRaw: ArrayBuffer | undefined;
 
     const dataLength = yield readInt32();
@@ -84,7 +104,7 @@ const parseNamedGameObjectBehavior = taggedParser(
     const preParsePosition = yield getReaderPosition();
     const templateData = yield* templateParser.parseByTemplate(name);
 
-    const extraDataParser = EXTRA_DATA_PARSERS[name];
+    const extraDataParser = EXTRA_DATA_PARSERS.get(name);
     if (extraDataParser) {
       extraData = yield* extraDataParser.parse(templateParser);
     }
@@ -94,13 +114,13 @@ const parseNamedGameObjectBehavior = taggedParser(
     const dataRemaining = dataLength - (postParsePosition - preParsePosition);
     if (dataRemaining < 0) {
       throw new Error(
-        `GameObjectBehavior "${name}" deserialized more type data than expected.`
+        `GameObjectBehavior "${name}" deserialized more type data than expected.`,
       );
     } else if (dataRemaining > 0) {
       if (extraDataParser) {
         // If we had an extraData parser, then it should have parsed the rest of it.
         throw new Error(
-          `GameObjectBehavior "${name}" extraData parser did not consume all extra data.`
+          `GameObjectBehavior "${name}" extraData parser did not consume all extra data.`,
         );
       }
 
@@ -113,28 +133,28 @@ const parseNamedGameObjectBehavior = taggedParser(
       name,
       templateData,
       extraData,
-      extraRaw
+      extraRaw,
     };
     return behavior;
-  }
+  },
 );
 
 export function* unparseGameObjectBehavior(
   behavior: GameObjectBehavior,
-  templateUnparser: TemplateUnparser
+  templateUnparser: TemplateUnparser,
 ): UnparseIterator {
   yield* unparseTaggedGameObjectBehavior(behavior, templateUnparser);
 }
 
 const unparseTaggedGameObjectBehavior = taggedParser(
   "GameObjectBehavior",
-  behavior => behavior.name,
-  function*(
+  (behavior) => behavior.name,
+  function* (
     behavior: GameObjectBehavior,
-    templateUnparser: TemplateUnparser
+    templateUnparser: TemplateUnparser,
   ): UnparseIterator {
     const { name, templateData, extraData, extraRaw } = behavior;
-    const extraDataParser = EXTRA_DATA_PARSERS[name];
+    const extraDataParser = EXTRA_DATA_PARSERS.get(name);
 
     yield writeKleiString(name);
 
@@ -145,7 +165,7 @@ const unparseTaggedGameObjectBehavior = taggedParser(
     if (extraData) {
       if (!extraDataParser) {
         throw new Error(
-          `GameObjectBehavior "${name}" has extraData set, but no extraData parser exists for this behavior.`
+          `GameObjectBehavior "${name}" has extraData set, but no extraData parser exists for this behavior.`,
         );
       }
 
@@ -157,5 +177,5 @@ const unparseTaggedGameObjectBehavior = taggedParser(
     }
 
     yield writeDataLengthEnd(lengthToken);
-  }
+  },
 );

@@ -1,20 +1,26 @@
-import { TextDecoder } from "text-encoding";
+import type {
+  Quaternion,
+  Vector3,
+} from "../../save-structure/data-types/index.ts";
+import type { LongNum } from "../types.ts";
+import type { DataReader } from "./interfaces.ts";
 
-import { Vector3, Quaternion } from "../../save-structure/data-types";
-
-import { LongNum } from "../types";
-
-import { DataReader } from "./interfaces";
+const stringDecoder = new TextDecoder();
 
 export class ArrayDataReader implements DataReader {
-  private _buffer: ArrayBuffer;
-  private _view: DataView;
-  private _byteOffset: number = 0;
-  private _stringDecoder = new TextDecoder("utf-8");
+  private readonly _buffer: Uint8Array;
+  private readonly _view: DataView;
+  private _byteOffset = 0;
 
-  constructor(buffer: ArrayBuffer) {
-    this._buffer = buffer;
-    this._view = new DataView(buffer);
+  constructor(buffer: ArrayBuffer | ArrayBufferView) {
+    this._buffer = ArrayBuffer.isView(buffer)
+      ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+      : new Uint8Array(buffer);
+    this._view = new DataView(
+      this._buffer.buffer,
+      this._buffer.byteOffset,
+      this._buffer.byteLength,
+    );
   }
 
   get position(): number {
@@ -39,15 +45,19 @@ export class ArrayDataReader implements DataReader {
     this._checkCanRead(length);
     const newBuffer = this._buffer.slice(
       this._byteOffset,
-      length + this._byteOffset
+      length + this._byteOffset,
     );
     this._byteOffset += length;
-    return newBuffer;
+    return newBuffer.buffer;
   }
 
   viewBytes(length: number): ArrayBufferView {
     this._checkCanRead(length);
-    const view = new DataView(this._buffer, this._byteOffset, length);
+    const view = new DataView(
+      this._buffer.buffer,
+      this._buffer.byteOffset + this._byteOffset,
+      length,
+    );
     this._byteOffset += length;
     return view;
   }
@@ -55,11 +65,11 @@ export class ArrayDataReader implements DataReader {
   readAllBytes(): ArrayBuffer {
     const newBuffer = this._buffer.slice(this._byteOffset);
     this._byteOffset = this._buffer.byteLength;
-    return newBuffer;
+    return newBuffer.buffer;
   }
 
   viewAllBytes(): Uint8Array {
-    const view = new Uint8Array(this._buffer, this._byteOffset);
+    const view = this._buffer.subarray(this._byteOffset);
     this._byteOffset = this._buffer.byteLength;
     return view;
   }
@@ -92,25 +102,26 @@ export class ArrayDataReader implements DataReader {
   }
 
   readUInt64(): LongNum {
+    this._checkCanRead(8);
     // little-endian, lower comes first.
     const lower = this.readInt32();
     const upper = this.readInt32();
-    //return new Long(lower, upper, true);
     return {
       unsigned: true,
       lower,
-      upper
+      upper,
     };
   }
 
   readInt64(): LongNum {
+    this._checkCanRead(8);
     // little-endian, lower comes first.
     const lower = this.readInt32();
     const upper = this.readInt32();
     return {
       unsigned: false,
       lower,
-      upper
+      upper,
     };
   }
 
@@ -129,13 +140,16 @@ export class ArrayDataReader implements DataReader {
   }
 
   readChars(length: number): string {
-    // Note: readChars deals with unencoded single-byte utf-8 chars.
-    //  This is not safe for multi-byte characters, and is only used for
-    //  places dealing with fixed length single-byte values.
-    const bytes = new Uint8Array(this.readBytes(length));
+    // These are raw byte-valued characters, not UTF-8 encoded text.
+    this._checkCanRead(length);
+    const bytes = this._buffer.subarray(
+      this._byteOffset,
+      this._byteOffset + length,
+    );
+    this._byteOffset += length;
     let str = "";
     for (let i = 0; i < bytes.length; i++) {
-      str += String.fromCharCode(bytes[i]);
+      str += String.fromCharCode(bytes[i]!);
     }
     return str;
   }
@@ -151,43 +165,47 @@ export class ArrayDataReader implements DataReader {
     }
     if (count > 0) {
       // Note: the length is the encoded length, not the character count.
-      const bytes = this.readBytes(count);
-      return this._stringDecoder.decode(new DataView(bytes));
+      return stringDecoder.decode(this.viewBytes(count));
     }
 
-    throw new Error("Invalid byte count in readKleiString: " + count);
+    throw new RangeError("Invalid byte count in readKleiString: " + count);
   }
 
   readVector3(): Vector3 {
+    this._checkCanRead(12);
     const vec: Vector3 = {
       x: this.readSingle(),
       y: this.readSingle(),
-      z: this.readSingle()
+      z: this.readSingle(),
     };
     return vec;
   }
 
   readQuaternion(): Quaternion {
+    this._checkCanRead(16);
     const q: Quaternion = {
       x: this.readSingle(),
       y: this.readSingle(),
       z: this.readSingle(),
-      w: this.readSingle()
+      w: this.readSingle(),
     };
     return q;
   }
 
-  skipBytes(length: number) {
+  skipBytes(length: number): void {
     this._checkCanRead(length);
     this._byteOffset += length;
   }
 
-  private _checkCanRead(length: number) {
-    if (this._byteOffset + length > this._view.byteLength) {
-      throw new Error(
+  private _checkCanRead(length: number): void {
+    if (!Number.isSafeInteger(length) || length < 0) {
+      throw new RangeError("Byte count must be a non-negative safe integer.");
+    }
+    if (length > this._view.byteLength - this._byteOffset) {
+      throw new RangeError(
         `Cannot read ${length} byte${
-          length != 1 ? "s" : ""
-        }: Buffer length exceeded.`
+          length !== 1 ? "s" : ""
+        }: Buffer length exceeded.`,
       );
     }
   }

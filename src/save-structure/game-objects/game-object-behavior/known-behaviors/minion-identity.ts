@@ -1,9 +1,9 @@
-import { AccessoryType } from "../../../const-data";
-import { HashedString } from "../../../data-types";
+import type { AccessoryType } from "../../../const-data/index.ts";
+import { HashedString } from "../../../data-types/index.ts";
 
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { GameObjectBehavior } from "../game-object-behavior.ts";
 
-import { BehaviorName } from "./types";
+import type { BehaviorName } from "./types.ts";
 
 export const MinionIdentityBehavior: BehaviorName<MinionIdentityBehavior> =
   "MinionIdentity";
@@ -56,5 +56,5 @@ export const MINION_IDENTITY_BODY_DATA_ACCESSORIES: Record<
   hair: "hair",
   body: "body",
   arms: "arm",
-  hat: "hat"
+  hat: "hat",
 };

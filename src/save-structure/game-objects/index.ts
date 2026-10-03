@@ -1,3 +1,3 @@
-export * from "./game-object";
-export * from "./game-object-behavior";
-export * from "./game-object-group";
+export * from "./game-object/index.ts";
+export * from "./game-object-behavior/index.ts";
+export * from "./game-object-group/index.ts";

@@ -1,1 +1,1 @@
-export * from "./minion-modifiers";
+export * from "./minion-modifiers.ts";

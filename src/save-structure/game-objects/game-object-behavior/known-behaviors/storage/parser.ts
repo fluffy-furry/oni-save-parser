@@ -1,46 +1,50 @@
-import { validateDotNetIdentifierName } from "../../../../../utils";
+import { validateDotNetIdentifierName } from "../../../../../utils.ts";
 
 import {
-  ParseIterator,
+  type ParseIterator,
   readInt32,
-  UnparseIterator,
-  writeInt32,
   readKleiString,
-  writeKleiString
-} from "../../../../../parser";
+  type UnparseIterator,
+  writeInt32,
+  writeKleiString,
+} from "../../../../../parser/index.ts";
 
-import {
+import type {
   TemplateParser,
-  TemplateUnparser
-} from "../../../../type-templates/template-data-parser";
+  TemplateUnparser,
+} from "../../../../type-templates/template-data-parser.ts";
+import { validateCollectionCount } from "../../../../collection-count.ts";
 
 import {
   parseGameObject,
-  unparseGameObject
-} from "../../../game-object/parser";
+  unparseGameObject,
+} from "../../../game-object/parser.ts";
 
-import { StoredGameObject } from "./storage";
+import type { StoredGameObject } from "./storage.ts";
 
 export function* parseStorageExtraData(
-  templateParser: TemplateParser
+  templateParser: TemplateParser,
 ): ParseIterator<StoredGameObject[]> {
-  const itemCount: number = yield readInt32();
-  const items = new Array(itemCount);
+  const itemCount = validateCollectionCount(
+    yield readInt32(),
+    "Stored game object",
+  );
+  const items: StoredGameObject[] = [];
   for (let i = 0; i < itemCount; i++) {
     const name = yield readKleiString();
     validateDotNetIdentifierName(name);
     const gameObject = yield* parseGameObject(templateParser);
-    items[i] = {
+    items.push({
       name,
-      ...gameObject
-    };
+      ...gameObject,
+    });
   }
   return items;
 }
 
 export function* unparseStorageExtraData(
   extraData: StoredGameObject[],
-  templateUnparser: TemplateUnparser
+  templateUnparser: TemplateUnparser,
 ): UnparseIterator {
   yield writeInt32(extraData.length);
   for (const gameObject of extraData) {

@@ -1,6 +1,9 @@
-import { Vector3, Quaternion } from "../../save-structure/data-types";
+import type {
+  Quaternion,
+  Vector3,
+} from "../../save-structure/data-types/index.ts";
 
-import { LongNum } from "../types";
+import type { LongNum } from "../types.ts";
 
 /**
  * A little-endian streaming data reader.

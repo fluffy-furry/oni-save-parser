@@ -1,37 +1,29 @@
+/** An error with a byte offset in the current (possibly decompressed) stream. */
 export class ParseError extends Error {
-  dataOffset: number;
-  cause?: () => Error;
+  readonly dataOffset: number;
   code?: string | number;
 
-  constructor(message: string, dataOffset: number) {
-    super(message);
-    Object.setPrototypeOf(this, ParseError.prototype);
+  constructor(message: string, dataOffset: number, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "ParseError";
     this.dataOffset = dataOffset;
   }
 
-  static create(error: any, dataOffset: number): ParseError {
+  static create(error: unknown, dataOffset: number): ParseError {
     if (error instanceof ParseError) {
       return error;
     }
 
-    if (typeof error.message === "string") {
-      const err = new ParseError(
-        `Error while processing content: ${error.message}`,
-        dataOffset
-      );
-
-      err.cause = () => error;
-      err.stack = error.stack;
-
-      if (error.code) {
-        err.code = error.code;
-      }
-
-      return err;
+    const message = error instanceof Error
+      ? `Error while processing content: ${error.message}`
+      : String(error);
+    const result = new ParseError(message, dataOffset, { cause: error });
+    if (
+      typeof error === "object" && error !== null && "code" in error &&
+      (typeof error.code === "string" || typeof error.code === "number")
+    ) {
+      result.code = error.code;
     }
-
-    const err = new ParseError(String(error), dataOffset);
-    Error.captureStackTrace(err, ParseError.create);
-    return err;
+    return result;
   }
 }

@@ -1,13 +1,7 @@
-// Serialization seems to use . for namespaces and + for inner classes.
-//  We can also see explicit types, such as
-//  "SerializedList`1[[Message, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]]"
-// "WorkChore`1+StatesInstance[[Clinic, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]]"
-// "<SomeType>k__BackingField"
-const REGEX_IDENTIFIER = /^(\<[a-zA-Z0-9\_]+\>)?[a-zA-Z0-9\_\+\.]+(\`\d+)?(\+[a-zA-Z0-9\_\+\.]+)?(\[\[.+\]\])?$/;
-
 // Any non-printable character shouldn't be in an identifier name, regardless of CLR standards.
 // This doesn't check for formats, start-with-number, or symbols.  Giving up on vetting those,
 //  lots of mods doing weird things.
+// deno-lint-ignore no-control-regex -- Reject control bytes in save identifiers.
 const REGEX_IDENTIFIER_INVAL_CHARS = /[\x00-\x1F]/;
 
 /**
@@ -17,7 +11,7 @@ const REGEX_IDENTIFIER_INVAL_CHARS = /[\x00-\x1F]/;
  * @param name The name to validate.
  */
 export function validateDotNetIdentifierName(
-  name: string | null | undefined
+  name: string | null | undefined,
 ): string {
   if (!name || name.length === 0) {
     throw new Error("A .NET identifier name must not be null or zero length.");
@@ -30,7 +24,7 @@ export function validateDotNetIdentifierName(
     // We want to bail out in these cases without trying to include the template name in the error, as it is likely to be
     //  enormous.
     throw new Error(
-      "A .NET identifier name exceeded 511 characters.  This most likely indicates a parser error."
+      "A .NET identifier name exceeded 511 characters.  This most likely indicates a parser error.",
     );
   }
 
@@ -39,35 +33,17 @@ export function validateDotNetIdentifierName(
   // Null check is the best I can think of right now.
   if (REGEX_IDENTIFIER_INVAL_CHARS.test(name)) {
     throw new Error(
-      "A .NET identifier name contains non-printable characters.  This most likely indicates a parser error."
+      "A .NET identifier name contains non-printable characters.  This most likely indicates a parser error.",
     );
   }
-
-  // Disabled as mods are using non-conformant property names.
-  //  This probably means a different ruleset applied to property names,
-  //  or the properties are being written in IL rather than through the C# compiler.
-  //validateCLRConformantVariableName();
 
   return name;
-}
-
-/**
- * Validate a name against the apparent rules for CLR variable names.
- * 'Apparant', as many mods are using names that do not conform, including
- * dashes, expanded unicode characters, and other such nonsense.
- */
-function validateCLRConformantVariableName(name: string) {
-  if (!REGEX_IDENTIFIER.test(name)) {
-    throw new Error(
-      `Identifier "${name}" has invalid characters.  This most likely indicates a parser error or change in serializer standards.`
-    );
-  }
 }
 
 export function typed<T extends string>(s: T): T {
   return s;
 }
 
-export function typedKeys<T>(x: T): (keyof T)[] {
-  return Object.keys(x) as any;
+export function typedKeys<T extends object>(x: T): (keyof T)[] {
+  return Object.keys(x) as (keyof T)[];
 }

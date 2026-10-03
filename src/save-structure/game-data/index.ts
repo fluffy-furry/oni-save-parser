@@ -1,1 +1,1 @@
-export * from "./game-data";
+export * from "./game-data.ts";

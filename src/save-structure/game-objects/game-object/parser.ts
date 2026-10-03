@@ -1,45 +1,47 @@
+import type { DataReader } from "../../../binary-serializer/data-reader/interfaces.ts";
 import {
-  ParseIterator,
-  UnparseIterator,
-  readInt32,
+  type ParseIterator,
   readByte,
+  readInt32,
+  readWith,
+  type UnparseIterator,
+  writeByte,
   writeInt32,
-  writeByte
-} from "../../../parser";
+  writeWith,
+} from "../../../parser/index.ts";
 
-import {
+import type {
   TemplateParser,
-  TemplateUnparser
-} from "../../type-templates/template-data-parser";
+  TemplateUnparser,
+} from "../../type-templates/template-data-parser.ts";
+import { validateCollectionCount } from "../../collection-count.ts";
 
 import {
-  parseVector3,
   parseQuaternion,
+  parseVector3,
+  unparseQuaternion,
   unparseVector3,
-  unparseQuaternion
-} from "../../../save-structure/data-types/data-types-parser";
+} from "../../../save-structure/data-types/data-types-parser.ts";
 
-import { GameObject } from "../game-object";
+import type { GameObject } from "../game-object/index.ts";
 
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { GameObjectBehavior } from "../game-object-behavior/index.ts";
 import {
   parseGameObjectBehavior,
-  unparseGameObjectBehavior
-} from "../game-object-behavior/parser";
+  unparseGameObjectBehavior,
+} from "../game-object-behavior/parser.ts";
 
 export function* parseGameObject(
-  templateParser: TemplateParser
+  templateParser: TemplateParser,
 ): ParseIterator<GameObject> {
-  const position = yield* parseVector3();
-  const rotation = yield* parseQuaternion();
-  const scale = yield* parseVector3();
-  const folder = yield readByte();
+  const { position, rotation, scale, folder, behaviorCount }: GameObjectHeader =
+    templateParser.useDirectIO
+      ? yield readWith(readGameObjectHeader)
+      : yield* parseGameObjectHeader();
 
-  const behaviorCount = yield readInt32();
-
-  const behaviors: GameObjectBehavior[] = new Array(behaviorCount);
+  const behaviors: GameObjectBehavior[] = [];
   for (let i = 0; i < behaviorCount; i++) {
-    behaviors[i] = yield* parseGameObjectBehavior(templateParser);
+    behaviors.push(yield* parseGameObjectBehavior(templateParser));
   }
 
   const gameObject: GameObject = {
@@ -47,7 +49,7 @@ export function* parseGameObject(
     rotation,
     scale,
     folder,
-    behaviors
+    behaviors,
   };
 
   return gameObject;
@@ -55,18 +57,79 @@ export function* parseGameObject(
 
 export function* unparseGameObject(
   gameObject: GameObject,
-  templateUnparser: TemplateUnparser
+  templateUnparser: TemplateUnparser,
 ): UnparseIterator {
   const { position, rotation, scale, folder, behaviors } = gameObject;
 
-  yield* unparseVector3(position);
-  yield* unparseQuaternion(rotation);
-  yield* unparseVector3(scale);
-  yield writeByte(folder);
+  if (templateUnparser.useDirectIO) {
+    yield writeWith((writer) => {
+      writer.writeVector3(position);
+      writer.writeQuaternion(rotation);
+      writer.writeVector3(scale);
+      writer.writeByte(folder);
+      writer.writeInt32(
+        validateCollectionCount(behaviors.length, "Game object behavior"),
+      );
+    });
+  } else {
+    yield* unparseVector3(position);
+    yield* unparseQuaternion(rotation);
+    yield* unparseVector3(scale);
+    yield writeByte(folder);
 
-  yield writeInt32(behaviors.length);
+    yield writeInt32(
+      validateCollectionCount(behaviors.length, "Game object behavior"),
+    );
+  }
 
   for (const behavior of behaviors) {
     yield* unparseGameObjectBehavior(behavior, templateUnparser);
   }
+}
+
+type GameObjectHeader =
+  & Pick<GameObject, "position" | "rotation" | "scale" | "folder">
+  & {
+    behaviorCount: number;
+  };
+
+function* parseGameObjectHeader(): ParseIterator<GameObjectHeader> {
+  const position = yield* parseVector3();
+  const rotation = yield* parseQuaternion();
+  const scale = yield* parseVector3();
+  const folder = yield readByte();
+
+  const behaviorCount = validateCollectionCount(
+    yield readInt32(),
+    "Game object behavior",
+  );
+
+  return { position, rotation, scale, folder, behaviorCount };
+}
+
+function readGameObjectHeader(reader: DataReader): GameObjectHeader {
+  // Keep scalar reads in their original order so truncated data reports the
+  // same byte offset as the instruction-by-instruction generator path.
+  const position = {
+    x: reader.readSingle(),
+    y: reader.readSingle(),
+    z: reader.readSingle(),
+  };
+  const rotation = {
+    x: reader.readSingle(),
+    y: reader.readSingle(),
+    z: reader.readSingle(),
+    w: reader.readSingle(),
+  };
+  const scale = {
+    x: reader.readSingle(),
+    y: reader.readSingle(),
+    z: reader.readSingle(),
+  };
+  const folder = reader.readByte();
+  const behaviorCount = validateCollectionCount(
+    reader.readInt32(),
+    "Game object behavior",
+  );
+  return { position, rotation, scale, folder, behaviorCount };
 }

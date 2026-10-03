@@ -1,6 +1,9 @@
-import { Vector3, Quaternion } from "../../../save-structure/data-types";
+import type {
+  Quaternion,
+  Vector3,
+} from "../../../save-structure/data-types/index.ts";
 
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { GameObjectBehavior } from "../game-object-behavior/index.ts";
 
 export interface GameObject {
   readonly position: Vector3;

@@ -1,5 +1,5 @@
-import { GameObjectBehavior } from "../game-object-behavior";
-import { BehaviorName } from "./types";
+import type { GameObjectBehavior } from "../game-object-behavior.ts";
+import type { BehaviorName } from "./types.ts";
 
 export const AIEffectsBehavior: BehaviorName<AIEffectsBehavior> =
   "Klei.AI.Effects";
@@ -50,5 +50,5 @@ export const AI_EFFECT_IDS: string[] = [
   "Hyperthermia",
 
   // Found in DB.cs
-  "CenterOfAttention"
+  "CenterOfAttention",
 ];

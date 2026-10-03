@@ -1,25 +1,26 @@
-import { TextEncoder } from "text-encoding";
+import { Buffer } from "node:buffer";
+import type {
+  Quaternion,
+  Vector3,
+} from "../../save-structure/data-types/index.ts";
+import type { LongNum } from "../types.ts";
+import type { DataWriter } from "./interfaces.ts";
 
-import { Vector3, Quaternion } from "../../save-structure/data-types";
-
-import { LongNum } from "../types";
-
-import { DataWriter } from "./interfaces";
-
-/**
- * Increase buffer by 1 mb each time we run out of length.
- */
-// TODO: Explore this to find a good increment size.
-const BUFFER_INCREASE = 1048576;
+const INITIAL_CAPACITY = 4096;
+const textEncoder = new TextEncoder();
 
 export class ArrayDataWriter implements DataWriter {
   private _byteOffset = 0;
-  private _buffer: Uint8Array;
+  private _buffer: Uint8Array<ArrayBuffer>;
   private _view: DataView;
-  private _textEncoder = new TextEncoder("utf-8");
 
-  constructor() {
-    this._buffer = new Uint8Array(BUFFER_INCREASE);
+  constructor(initialCapacity = INITIAL_CAPACITY) {
+    if (!Number.isSafeInteger(initialCapacity) || initialCapacity < 0) {
+      throw new RangeError(
+        "Initial capacity must be a non-negative safe integer.",
+      );
+    }
+    this._buffer = new Uint8Array(initialCapacity);
     this._view = new DataView(this._buffer.buffer);
   }
 
@@ -48,7 +49,7 @@ export class ArrayDataWriter implements DataWriter {
       // Some other type of view.  Treat it as a byte array.
       this._buffer.set(
         new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
-        this._byteOffset
+        this._byteOffset,
       );
     } else {
       this._buffer.set(new Uint8Array(value), this._byteOffset);
@@ -77,11 +78,19 @@ export class ArrayDataWriter implements DataWriter {
 
   writeInt32(value: number): void {
     this._ensureCanWrite(4);
-    this._view.setUint32(this._byteOffset, value, true);
+    this._view.setInt32(this._byteOffset, value, true);
     this._byteOffset += 4;
   }
 
   replaceInt32(value: number, position: number): void {
+    if (
+      !Number.isSafeInteger(position) || position < 0 ||
+      position > this._byteOffset - 4
+    ) {
+      throw new RangeError(
+        "Replacement must fit within the bytes already written.",
+      );
+    }
     this._view.setInt32(position, value, true);
   }
 
@@ -99,21 +108,18 @@ export class ArrayDataWriter implements DataWriter {
 
   writeSingle(value: number): void {
     this._ensureCanWrite(4);
-    const val = this._view.setFloat32(this._byteOffset, value, true);
+    this._view.setFloat32(this._byteOffset, value, true);
     this._byteOffset += 4;
-    return val;
   }
 
   writeDouble(value: number): void {
     this._ensureCanWrite(8);
-    const val = this._view.setFloat64(this._byteOffset, value, true);
+    this._view.setFloat64(this._byteOffset, value, true);
     this._byteOffset += 8;
-    return val;
   }
 
   writeChars(value: string): void {
-    // Do not encode here, we want pure unicode values.
-    //  These values are not suitable for multi-byte characters.
+    // Store the low byte of each code unit without UTF-8 encoding.
     this._ensureCanWrite(value.length);
     for (let i = 0; i < value.length; i++) {
       this._view.setUint8(this._byteOffset + i, value.charCodeAt(i));
@@ -127,11 +133,28 @@ export class ArrayDataWriter implements DataWriter {
     } else if (value.length === 0) {
       this.writeInt32(0);
     } else {
-      // We cannot use writeChars here, as
-      //  encodings can write multi-byte data.
-      const encoded = this._textEncoder.encode(value);
-      this.writeInt32(encoded.byteLength);
-      this.writeBytes(encoded);
+      // UTF-8 needs at most three bytes per UTF-16 code unit, including lone
+      // surrogates. Use existing capacity directly for the common small case.
+      // On growth, measure exactly to avoid tripling allocations for ASCII.
+      const maximumBytes = value.length * 3;
+      if (
+        maximumBytes > this._buffer.byteLength - this._byteOffset - 4 ||
+        maximumBytes > 0x7fffffff
+      ) {
+        const byteLength = Buffer.byteLength(value, "utf8");
+        if (byteLength > 0x7fffffff) {
+          throw new RangeError(
+            "Klei strings cannot exceed 2,147,483,647 encoded bytes.",
+          );
+        }
+        this._ensureCanWrite(4 + byteLength);
+      }
+      const { written } = textEncoder.encodeInto(
+        value,
+        this._buffer.subarray(this._byteOffset + 4),
+      );
+      this._view.setInt32(this._byteOffset, written, true);
+      this._byteOffset += 4 + written;
     }
   }
 
@@ -149,13 +172,11 @@ export class ArrayDataWriter implements DataWriter {
   }
 
   getBytes(): ArrayBuffer {
-    const buffer = new ArrayBuffer(this._byteOffset);
-    new Uint8Array(buffer).set(this.getBytesView());
-    return buffer;
+    return this._buffer.slice(0, this._byteOffset).buffer;
   }
 
   getBytesView(): Uint8Array {
-    return new Uint8Array(this._buffer.buffer, 0, this._byteOffset);
+    return this._buffer.subarray(0, this._byteOffset);
   }
 
   /**
@@ -163,22 +184,26 @@ export class ArrayDataWriter implements DataWriter {
    * the specified amount of bytes.
    * @param length The number of bytes intending to be written.
    */
-  private _ensureCanWrite(length: number) {
-    const increaseBy = this._byteOffset + length - this._buffer.length;
-    if (increaseBy > 0) {
-      this._increaseBuffer(increaseBy);
+  private _ensureCanWrite(length: number): void {
+    const required = this._byteOffset + length;
+    if (
+      !Number.isSafeInteger(length) || length < 0 ||
+      !Number.isSafeInteger(required)
+    ) {
+      throw new RangeError(
+        "Byte count must fit within a non-negative safe integer.",
+      );
     }
-  }
+    if (required <= this._buffer.byteLength) return;
 
-  private _increaseBuffer(size: number) {
-    let increaseSize = BUFFER_INCREASE;
-    if (increaseSize < size) {
-      increaseSize += size;
-    }
-
-    const newLength = this._buffer.length + increaseSize;
+    // Geometric growth keeps repeated writes amortized O(n), including large saves.
+    const newLength = Math.max(
+      required,
+      this._buffer.byteLength * 2,
+      INITIAL_CAPACITY,
+    );
     const newBuffer = new Uint8Array(newLength);
-    newBuffer.set(this._buffer, 0);
+    newBuffer.set(this._buffer.subarray(0, this._byteOffset));
     this._buffer = newBuffer;
     this._view = new DataView(this._buffer.buffer);
   }

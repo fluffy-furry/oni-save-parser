@@ -30,5 +30,5 @@ export const MinionSkillNames: string[] = [
   "Astronauting2",
   "Medicine1",
   "Medicine2",
-  "Medicine3"
+  "Medicine3",
 ];

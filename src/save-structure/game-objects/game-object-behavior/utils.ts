@@ -1,12 +1,12 @@
-import { GameObject } from "../game-object";
+import type { GameObject } from "../game-object/index.ts";
 
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { GameObjectBehavior } from "../game-object-behavior/index.ts";
 
-import { BehaviorName } from "./known-behaviors";
+import type { BehaviorName } from "./known-behaviors/index.ts";
 
 export function getBehavior<T extends GameObjectBehavior>(
   gameObject: GameObject,
-  name: BehaviorName<T>
+  name: BehaviorName<T>,
 ): T | undefined {
-  return gameObject.behaviors.find(x => x.name === name) as T | undefined;
+  return gameObject.behaviors.find((x) => x.name === name) as T | undefined;
 }

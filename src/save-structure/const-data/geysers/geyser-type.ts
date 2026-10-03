@@ -1,4 +1,7 @@
-import { HashedString, createHashedStringEnum } from "../../data-types";
+import {
+  createHashedStringEnum,
+  type HashedString,
+} from "../../data-types/index.ts";
 
 export const GeyserTypeNames = [
   "steam",

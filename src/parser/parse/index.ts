@@ -1,2 +1,2 @@
-export * from "./parser";
-export * from "./read-instructions";
+export * from "./parser.ts";
+export * from "./read-instructions.ts";

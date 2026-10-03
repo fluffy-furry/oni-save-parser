@@ -147,10 +147,10 @@ export enum SimHashes {
   CopperGas = 1966552544, // 0x753735E0
   FoolsGold = 2059777261, // 0x7AC5B4ED
   Aluminum = 2108244480, // 0x7DA94200
-  MoltenCopper = 2128494380 // 0x7EDE3F2C
+  MoltenCopper = 2128494380, // 0x7EDE3F2C
 }
 
 export type SimHashName = keyof typeof SimHashes;
 export const SimHashNames: SimHashName[] = Object.keys(SimHashes)
-  .filter(x => isNaN(x as any))
-  .sort() as any;
+  .filter((name): name is SimHashName => Number.isNaN(Number(name)))
+  .sort();

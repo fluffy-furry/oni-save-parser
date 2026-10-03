@@ -1,16 +1,17 @@
-import { SimHashes, SpaceDestinationTypeName } from "../../../const-data";
+import {
+  SimHashes,
+  SpaceDestinationTypeName,
+} from "../../../const-data/index.ts";
 
-import { BehaviorName } from "./types";
-import { MinionResumeBehavior } from "./minion-resume";
+import type { BehaviorName } from "./types.ts";
 
 export const SpacecraftManagerBehavior: BehaviorName<
   SpacecraftManagerBehavior
-> =
-  "SpacecraftManager";
+> = "SpacecraftManager";
 export interface SpacecraftManagerBehavior {
   name: "SpacecraftManager";
   templateData: {
-    spacecraft: any[];
+    spacecraft: unknown[];
     analyzeDestinationID: number;
     destinationAnalysisScores: ([number, number])[];
     destinations: SpaceDestination[];
@@ -23,7 +24,7 @@ export interface SpacecraftManagerBehavior {
 export interface Spacecraft {
   id: number;
   rocketName: string;
-  refLaunchConditions: any;
+  refLaunchConditions: unknown;
   moduleCount: number;
   missionState: MissionState;
   missionElapsed: number;
@@ -36,7 +37,7 @@ export enum MissionState {
   Underway = "Underway",
   WaitingToLand = "WaitingToLand",
   Landing = "Landing",
-  Destroyed = "Destroyed"
+  Destroyed = "Destroyed",
 }
 
 export interface SpaceDestination {

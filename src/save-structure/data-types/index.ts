@@ -1,2 +1,2 @@
-export * from "./data-types";
-export * from "./hashed-string";
+export * from "./data-types.ts";
+export * from "./hashed-string.ts";

@@ -1,7 +1,7 @@
-export * from "./accessories";
-export * from "./dlc";
-export * from "./geysers";
-export * from "./skills";
-export * from "./space-destinations";
+export * from "./accessories.ts";
+export * from "./dlc.ts";
+export * from "./geysers/index.ts";
+export * from "./skills/index.ts";
+export * from "./space-destinations.ts";
 
-export * from "./template-enumerations";
+export * from "./template-enumerations/index.ts";

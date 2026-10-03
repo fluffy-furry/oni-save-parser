@@ -74,8 +74,8 @@ export interface TypeTemplateMember {
  */
 export interface TypeInfo {
   info: SerializationTypeInfo;
-  templateName?: string;
-  subTypes?: TypeInfo[];
+  templateName?: string | undefined;
+  subTypes?: TypeInfo[] | undefined;
 }
 
 /**
@@ -109,7 +109,7 @@ export enum SerializationTypeInfo {
   Colour = 23,
   VALUE_MASK = 63,
   IS_VALUE_TYPE = 64,
-  IS_GENERIC_TYPE = 128
+  IS_GENERIC_TYPE = 128,
 }
 
 export enum SerializationTypeCode {
@@ -136,12 +136,12 @@ export enum SerializationTypeCode {
   List = 20,
   HashSet = 21,
   Queue = 22,
-  Colour = 23
+  Colour = 23,
 }
 
 // TODO: This needs to be changed based on the current version due to cosmos update changing the VALUE_MASK constant.
 export function getTypeCode(
-  type: SerializationTypeInfo
+  type: SerializationTypeInfo,
 ): SerializationTypeCode {
   return type & SerializationTypeInfo.VALUE_MASK;
 }
@@ -160,12 +160,12 @@ export const GENERIC_TYPES: SerializationTypeCode[] = [
   SerializationTypeCode.List,
   SerializationTypeCode.HashSet,
   SerializationTypeCode.UserDefined,
-  SerializationTypeCode.Queue
+  SerializationTypeCode.Queue,
 ];
 
 export const LIST_TYPES: SerializationTypeCode[] = [
   SerializationTypeCode.Array,
   SerializationTypeCode.List,
   SerializationTypeCode.HashSet,
-  SerializationTypeCode.Queue
+  SerializationTypeCode.Queue,
 ];

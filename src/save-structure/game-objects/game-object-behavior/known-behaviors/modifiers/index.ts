@@ -1,1 +1,1 @@
-export * from "./modifiers";
+export * from "./modifiers.ts";

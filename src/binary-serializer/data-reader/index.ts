@@ -1,4 +1,4 @@
-export * from "./interfaces";
+export * from "./interfaces.ts";
 
-export * from "./array-reader";
-export * from "./zlib-reader";
+export * from "./array-reader.ts";
+export * from "./zlib-reader.ts";

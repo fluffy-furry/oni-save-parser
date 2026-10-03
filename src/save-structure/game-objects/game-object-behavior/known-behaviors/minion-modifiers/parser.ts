@@ -1,35 +1,36 @@
-import { validateDotNetIdentifierName } from "../../../../../utils";
+import { validateDotNetIdentifierName } from "../../../../../utils.ts";
 
 import {
-  ParseIterator,
-  readInt32,
-  UnparseIterator,
-  readKleiString,
   getReaderPosition,
-  writeInt32,
-  writeKleiString,
+  type ParseIterator,
+  readInt32,
+  readKleiString,
+  type UnparseIterator,
   writeDataLengthBegin,
   writeDataLengthEnd,
-} from "../../../../../parser";
+  writeInt32,
+  writeKleiString,
+} from "../../../../../parser/index.ts";
 
-import {
+import type {
   TemplateParser,
   TemplateUnparser,
-} from "../../../../type-templates/template-data-parser";
+} from "../../../../type-templates/template-data-parser.ts";
+import { validateCollectionCount } from "../../../../collection-count.ts";
 
-import {
-  MinionModifiersExtraData,
+import type {
   AIAmountInstance,
   AISicknessInstance,
   MinionModificationInstance,
-} from "./minion-modifiers";
+  MinionModifiersExtraData,
+} from "./minion-modifiers.ts";
 
 export function* parseMinionModifiersExtraData(
-  templateParser: TemplateParser
+  templateParser: TemplateParser,
 ): ParseIterator<MinionModifiersExtraData> {
   const amounts: AIAmountInstance[] = yield* parseModifiers<AIAmountInstance>(
     "Klei.AI.AmountInstance",
-    templateParser
+    templateParser,
   );
   const sicknesses: AISicknessInstance[] = yield* parseModifiers<
     AISicknessInstance
@@ -44,32 +45,35 @@ export function* parseMinionModifiersExtraData(
 
 export function* unparseMinionModifiersExtraData(
   extraData: MinionModifiersExtraData,
-  templateUnparser: TemplateUnparser
+  templateUnparser: TemplateUnparser,
 ): UnparseIterator {
   yield* unparseModifiers<AIAmountInstance>(
     extraData.amounts,
     "Klei.AI.AmountInstance",
-    templateUnparser
+    templateUnparser,
   );
   yield* unparseModifiers<AISicknessInstance>(
     extraData.sicknesses,
     "Klei.AI.SicknessInstance",
-    templateUnparser
+    templateUnparser,
   );
 }
 
 function* parseModifiers<T extends MinionModificationInstance>(
   modifierInstanceType: string,
-  templateParser: TemplateParser
+  templateParser: TemplateParser,
 ): ParseIterator<T[]> {
-  const count: number = yield readInt32();
-  const items = new Array(count);
+  const count = validateCollectionCount(
+    yield readInt32(),
+    modifierInstanceType,
+  );
+  const items: T[] = [];
   for (let i = 0; i < count; i++) {
     const modifier = yield* parseModifier<T>(
       modifierInstanceType,
-      templateParser
+      templateParser,
     );
-    items[i] = modifier;
+    items.push(modifier);
   }
   return items;
 }
@@ -77,7 +81,7 @@ function* parseModifiers<T extends MinionModificationInstance>(
 function* unparseModifiers<T extends MinionModificationInstance>(
   instances: T[],
   modifierInstanceType: string,
-  templateUnparser: TemplateUnparser
+  templateUnparser: TemplateUnparser,
 ): UnparseIterator {
   yield writeInt32(instances.length);
   for (const instance of instances) {
@@ -87,15 +91,15 @@ function* unparseModifiers<T extends MinionModificationInstance>(
 
 function* parseModifier<T extends MinionModificationInstance>(
   modifierInstanceType: string,
-  templateParser: TemplateParser
+  templateParser: TemplateParser,
 ): ParseIterator<T> {
   const name: string = yield readKleiString();
   validateDotNetIdentifierName(name);
   const dataLength: number = yield readInt32();
 
   const startPos: number = yield getReaderPosition();
-  const value: any = yield* templateParser.parseByTemplate(
-    modifierInstanceType
+  const value: unknown = yield* templateParser.parseByTemplate(
+    modifierInstanceType,
   );
   const endPos: number = yield getReaderPosition();
 
@@ -104,7 +108,7 @@ function* parseModifier<T extends MinionModificationInstance>(
     throw new Error(
       `Modifier "${name}" deserialized ${Math.abs(dataRemaining)} ${
         dataRemaining > 0 ? "less" : "more"
-      } bytes type data than expected.`
+      } bytes type data than expected.`,
     );
   }
 
@@ -119,14 +123,14 @@ function* parseModifier<T extends MinionModificationInstance>(
 function* unparseModifier<T extends MinionModificationInstance>(
   instance: T,
   modifierInstanceType: string,
-  templateUnparser: TemplateUnparser
-) {
+  templateUnparser: TemplateUnparser,
+): UnparseIterator {
   yield writeKleiString(instance.name);
 
   const token = yield writeDataLengthBegin();
   yield* templateUnparser.unparseByTemplate(
     modifierInstanceType,
-    instance.value
+    instance.value,
   );
   yield writeDataLengthEnd(token);
 }

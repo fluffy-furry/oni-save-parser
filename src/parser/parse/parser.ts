@@ -1,57 +1,48 @@
-import { DataReader, ZlibDataReader } from "../../binary-serializer";
+import {
+  type DataReader,
+  ZlibDataReader,
+} from "../../binary-serializer/index.ts";
 
 import {
   isReadInstruction,
-  ReadDataTypes,
-  ReadInstruction,
-} from "./read-instructions";
-import { ParseError } from "../errors";
-import { isMetaInstruction } from "../types";
+  type ReadDataTypes,
+  type ReadInstruction,
+} from "./read-instructions.ts";
+import { ParseError } from "../errors.ts";
+import { isMetaInstruction } from "../types.ts";
 
-// Typescript currently does not support specifying the return value of an iterator.
-//  We could use IterableIterator<ReadInstructions | T>, but that throws errors
-//  when the parser delegates to sub-generators.
-export type ParseIterator<T> = Generator<any, T, any>;
-export type ParseInterceptor = (value: any) => any;
+// Instructions have heterogeneous response types; each generator annotates
+// its returned data, while the trampoline dispatches the yielded instructions.
+// deno-lint-ignore no-explicit-any -- Generator next values depend on each yielded instruction.
+export type ParseIterator<T> = Generator<unknown, T, any>;
+export type ParseInterceptor = (value: unknown) => unknown;
+
+export interface ParseExecutionOptions {
+  maxDecompressedBytes?: number;
+}
 
 export function parse<T>(
   reader: DataReader,
   readParser: ParseIterator<T>,
-  interceptor?: ParseInterceptor
+  interceptor?: ParseInterceptor,
+  options: ParseExecutionOptions = {},
 ): T {
-  let nextValue: any = undefined;
+  let nextValue: unknown;
   while (true) {
-    let iteratorResult: IteratorResult<any>;
     try {
-      iteratorResult = readParser.next(nextValue);
-    } catch (e) {
-      throw ParseError.create(e, reader.position);
-    }
-
-    let { value, done } = iteratorResult;
-    value = interceptor ? interceptor(value) : value;
-
-    if (!isMetaInstruction(value)) {
-      if (isReadInstruction(value)) {
-        try {
-          nextValue = executeReadInstruction(reader, value, interceptor);
-        } catch (e) {
-          const err = ParseError.create(e, reader.position);
-          throw err;
-        }
-      } else if (!done) {
-        throw new Error("Cannot yield a non-parse-instruction.");
-      } else {
-        nextValue = value;
+      const { value: yielded, done } = readParser.next(nextValue);
+      const value = interceptor ? interceptor(yielded) : yielded;
+      // A returned object is data, even when it happens to resemble an instruction.
+      if (done) return value as T;
+      if (isMetaInstruction(value)) continue;
+      if (!isReadInstruction(value)) {
+        throw new TypeError("Cannot yield a non-parse-instruction.");
       }
-    }
-
-    if (done) {
-      break;
+      nextValue = executeReadInstruction(reader, value, interceptor, options);
+    } catch (error) {
+      throw ParseError.create(error, reader.position);
     }
   }
-
-  return nextValue;
 }
 
 type TypedReadInstruction<T extends ReadDataTypes> = Extract<
@@ -62,11 +53,13 @@ type TypedReadInstruction<T extends ReadDataTypes> = Extract<
 type ReadParser<T extends ReadDataTypes> = (
   reader: DataReader,
   inst: TypedReadInstruction<T>,
-  interceptor?: ParseInterceptor
-) => any;
+  interceptor: ParseInterceptor | undefined,
+  options: ParseExecutionOptions,
+) => unknown;
 type ReadParsers = { [P in ReadDataTypes]: ReadParser<P> };
 
 const readParsers: ReadParsers = {
+  with: (reader, instruction) => instruction.callback(reader),
   byte: (r) => r.readByte(),
   "signed-byte": (r) => r.readSByte(),
   "byte-array": (r, i) =>
@@ -82,10 +75,13 @@ const readParsers: ReadParsers = {
   chars: (r, i) => r.readChars(i.length),
   "klei-string": (r) => r.readKleiString(),
   "skip-bytes": (r, i) => r.skipBytes(i.length),
-  compressed: (r, i, interceptor) => {
-    const bytes = r.readAllBytes();
-    const reader = new ZlibDataReader(new Uint8Array(bytes));
-    const result = parse(reader, i.parser, interceptor);
+  compressed: (r, i, interceptor, options) => {
+    const reader = new ZlibDataReader(r.viewAllBytes(), {
+      ...(options.maxDecompressedBytes === undefined ? {} : {
+        maxOutputLength: options.maxDecompressedBytes,
+      }),
+    });
+    const result = parse(reader, i.parser, interceptor, options);
     return result;
   },
   "reader-position": (r) => r.position,
@@ -94,12 +90,16 @@ const readParsers: ReadParsers = {
 function executeReadInstruction<T extends ReadDataTypes>(
   reader: DataReader,
   inst: TypedReadInstruction<T>,
-  interceptor?: ParseInterceptor
-): any {
+  interceptor: ParseInterceptor | undefined,
+  options: ParseExecutionOptions,
+): unknown {
   if (inst.type !== "read") {
     throw new Error("Expected a read parse instruction.");
   }
 
-  const readFunc = (readParsers[inst.dataType] as any) as ReadParser<T>;
-  return readFunc(reader, inst, interceptor);
+  const readFunc = readParsers[inst.dataType] as ReadParser<T>;
+  if (!Object.hasOwn(readParsers, inst.dataType)) {
+    throw new TypeError(`Unknown read instruction: ${inst.dataType}`);
+  }
+  return readFunc(reader, inst, interceptor, options);
 }

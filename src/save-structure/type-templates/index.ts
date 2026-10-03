@@ -1,1 +1,1 @@
-export * from "./type-templates";
+export * from "./type-templates.ts";

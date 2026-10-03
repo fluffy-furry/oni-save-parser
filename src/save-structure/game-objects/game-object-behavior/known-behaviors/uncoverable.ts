@@ -1,5 +1,5 @@
-import { BehaviorName } from "./types";
-import { GameObjectBehavior } from "../game-object-behavior";
+import type { BehaviorName } from "./types.ts";
+import type { GameObjectBehavior } from "../game-object-behavior.ts";
 
 export const UncoverableBehavior: BehaviorName<UncoverableBehavior> =
   "Uncoverable";

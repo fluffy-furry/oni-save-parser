@@ -1,53 +1,60 @@
-import { DataWriter, ZlibDataWriter } from "../../binary-serializer";
+import {
+  type DataWriter,
+  ZlibDataWriter,
+} from "../../binary-serializer/index.ts";
 
 import {
+  checkedDataLength,
+  type DataLengthToken,
   isWriteInstruction,
-  WriteDataTypes,
-  WriteInstruction,
-  DataLengthToken,
-} from "./write-instructions";
-import { ParseError } from "../errors";
-import { isMetaInstruction } from "../types";
+  type WriteDataTypes,
+  type WriteInstruction,
+} from "./write-instructions.ts";
+import { ParseError } from "../errors.ts";
+import { isMetaInstruction } from "../types.ts";
 
-export type UnparseIterator = Generator<any, any, any>;
-export type UnparseInterceptor = (value: any) => any;
+// deno-lint-ignore no-explicit-any -- Generator next values depend on each yielded instruction.
+export type UnparseIterator<T = void> = Generator<unknown, T, any>;
+export type UnparseInterceptor = (value: unknown) => unknown;
+
+/** Internal output adapter used for chunked and streaming save serialization. */
+export interface UnparseExecutionOptions {
+  writeCompressed?: (
+    writer: DataWriter,
+    unparser: UnparseIterator<unknown>,
+    interceptor: UnparseInterceptor | undefined,
+  ) => void;
+}
 
 export function unparse<T>(
   writer: DataWriter,
-  unparser: UnparseIterator,
-  interceptor?: UnparseInterceptor
+  unparser: UnparseIterator<T>,
+  interceptor?: UnparseInterceptor,
+  options: UnparseExecutionOptions = {},
 ): T {
-  let nextValue: any = undefined;
+  let nextValue: unknown;
   while (true) {
-    let iteratorResult: IteratorResult<any>;
     try {
-      iteratorResult = unparser.next(nextValue);
-    } catch (e) {
-      throw ParseError.create(e, writer.position);
-    }
-    let { value, done } = iteratorResult;
-    value = interceptor ? interceptor(value) : value;
-
-    if (!isMetaInstruction(value)) {
-      if (isWriteInstruction(value)) {
-        try {
-          nextValue = executeWriteInstruction(writer, value, interceptor);
-        } catch (e) {
-          throw ParseError.create(e, writer.position);
-        }
-      } else if (!done) {
-        throw new Error("Cannot yield a non-parse-instruction.");
-      } else {
-        nextValue = value;
+      const { value: yielded, done } = unparser.next(nextValue);
+      const value = interceptor ? interceptor(yielded) : yielded;
+      if (done) return value as T;
+      if (isMetaInstruction(value)) continue;
+      if (!isWriteInstruction(value)) {
+        throw new TypeError("Cannot yield a non-parse-instruction.");
       }
-    }
-
-    if (done) {
-      break;
+      if (value.dataType === "compressed" && options.writeCompressed) {
+        nextValue = options.writeCompressed(
+          writer,
+          value.unparser,
+          interceptor,
+        );
+      } else {
+        nextValue = executeWriteInstruction(writer, value, interceptor);
+      }
+    } catch (error) {
+      throw ParseError.create(error, writer.position);
     }
   }
-
-  return nextValue;
 }
 
 type TypedWriteInstruction<T extends WriteDataTypes> = Extract<
@@ -57,11 +64,12 @@ type TypedWriteInstruction<T extends WriteDataTypes> = Extract<
 type WriteParser<T extends WriteDataTypes> = (
   writer: DataWriter,
   inst: TypedWriteInstruction<T>,
-  interceptor?: UnparseInterceptor
-) => any;
+  interceptor?: UnparseInterceptor,
+) => unknown;
 type WriteParsers = { [P in WriteDataTypes]: WriteParser<P> };
 
 const writeParsers: WriteParsers = {
+  with: (writer, instruction) => instruction.callback(writer),
   byte: (r, i) => r.writeByte(i.value),
   "signed-byte": (r, i) => r.writeSByte(i.value),
   "byte-array": (r, i) => r.writeBytes(i.value),
@@ -79,15 +87,15 @@ const writeParsers: WriteParsers = {
   "data-length:begin": (r, i) => {
     const token: DataLengthToken = {
       writePosition: r.position,
-      startPosition: i.startPosition != null ? i.startPosition : r.position,
+      startPosition: i.startPosition ?? r.position,
     };
     r.writeInt32(0);
     return token;
   },
   "data-length:end": (r, i) =>
     r.replaceInt32(
-      r.position - (i.token.startPosition + 4),
-      i.token.writePosition
+      checkedDataLength(r.position - (i.token.startPosition + 4)),
+      i.token.writePosition,
     ),
   compressed: (r, i, interceptor) => {
     const writer = new ZlibDataWriter();
@@ -99,12 +107,15 @@ const writeParsers: WriteParsers = {
 function executeWriteInstruction<T extends WriteDataTypes>(
   writer: DataWriter,
   inst: TypedWriteInstruction<T>,
-  interceptor?: UnparseInterceptor
-): any {
+  interceptor?: UnparseInterceptor,
+): unknown {
   if (inst.type !== "write") {
     throw new Error("Expected a write parse instruction.");
   }
 
-  const writeFunc = (writeParsers[inst.dataType] as any) as WriteParser<T>;
+  const writeFunc = writeParsers[inst.dataType] as WriteParser<T>;
+  if (!Object.hasOwn(writeParsers, inst.dataType)) {
+    throw new TypeError(`Unknown write instruction: ${inst.dataType}`);
+  }
   return writeFunc(writer, inst, interceptor);
 }

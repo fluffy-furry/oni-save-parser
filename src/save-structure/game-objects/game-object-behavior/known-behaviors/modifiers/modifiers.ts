@@ -1,12 +1,12 @@
-import { GameObjectBehavior } from "../../game-object-behavior";
+import type { GameObjectBehavior } from "../../game-object-behavior.ts";
 
-import { BehaviorName } from "../types";
+import type { BehaviorName } from "../types.ts";
 
 export const ModifiersBehavior: BehaviorName<ModifiersBehavior> =
   "Klei.AI.Modifiers";
 export interface ModifiersBehavior extends GameObjectBehavior {
   name: "Klei.AI.Modifiers";
-  templateData: {};
+  templateData: Record<string, unknown>;
   extraData: ModifiersExtraData;
 }
 
@@ -17,7 +17,7 @@ export interface ModifiersExtraData {
 
 export interface ModificationInstance {
   name: string;
-  value: any;
+  value: unknown;
 }
 
 export interface AmountInstance extends ModificationInstance {
