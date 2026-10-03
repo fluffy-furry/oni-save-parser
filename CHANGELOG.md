@@ -1,5 +1,12 @@
 ## Unreleased
 
+- Read and write 7.38 saves, including current DLC headers.
+- Accept older formats verified against sample saves: 7.28, 7.31, 7.33, 7.34,
+  and 7.37.
+- Fix collection lengths and null markers to match the game's writer.
+- Reject mismatched save versions and unexpected trailing data.
+- Update game data types and content catalogs.
+- Add populated fixtures for attribute and trait editing tests.
 - Migrate to Deno and TypeScript modules.
 - Remove npm dependencies and the old CommonJS/browser builds.
 - Speed up save parsing and writing, especially for large object collections.
