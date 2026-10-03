@@ -182,6 +182,83 @@ Deno.test("compiled codecs match generator bytes and values across every type ca
   deepStrictEqual(decode(templates, "Root", compiled, false), model);
 });
 
+Deno.test("compiled collections write native lengths and read legacy lengths", () => {
+  const cases: {
+    type: TypeInfo;
+    value: unknown;
+    native: string;
+    legacy: string;
+  }[] = [];
+  for (const kind of [Type.Array, Type.List, Type.HashSet, Type.Queue]) {
+    const type = collection(kind, int);
+    cases.push(
+      {
+        type,
+        value: [7, 8],
+        native: "08000000020000000700000008000000",
+        legacy: "04000000020000000700000008000000",
+      },
+      {
+        type,
+        value: [],
+        native: "0000000000000000",
+        legacy: "fcffffff00000000",
+      },
+      {
+        type,
+        value: null,
+        native: "00000000ffffffff",
+        legacy: "04000000ffffffff",
+      },
+    );
+  }
+  cases.push(
+    {
+      type: collection(Type.Array, { info: Type.Byte }),
+      value: new Uint8Array([1, 2, 3]),
+      native: "0300000003000000010203",
+      legacy: "ffffffff03000000010203",
+    },
+    {
+      type: binary(Type.Dictionary, int, int),
+      value: [[1, 11], [2, 22]],
+      native: "10000000020000000b000000160000000100000002000000",
+      legacy: "0c000000020000000b000000160000000100000002000000",
+    },
+    {
+      type: binary(Type.Dictionary, int, int),
+      value: [],
+      native: "0000000000000000",
+      legacy: "fcffffff00000000",
+    },
+    {
+      type: binary(Type.Dictionary, int, int),
+      value: null,
+      native: "00000000ffffffff",
+      legacy: "04000000ffffffff",
+    },
+  );
+  for (const { type, value, native, legacy } of cases) {
+    const table: TypeTemplates = [{
+      name: "Root",
+      fields: [{ name: "value", type }],
+      properties: [],
+    }];
+    for (const compiled of [false, true]) {
+      deepStrictEqual(
+        encode(table, "Root", { value }, compiled),
+        Uint8Array.fromHex(native),
+      );
+      for (const hex of [native, legacy]) {
+        deepStrictEqual(
+          decode(table, "Root", Uint8Array.fromHex(hex), compiled),
+          { value },
+        );
+      }
+    }
+  }
+});
+
 Deno.test("compiled nested codecs retain recursive references and first duplicate templates", () => {
   const table: TypeTemplates = [{
     name: "Node",
@@ -299,7 +376,7 @@ Deno.test("compiled save operations rebuild codecs after template edits", () => 
   deepStrictEqual(parseSaveGame(writeSaveGame(save)), save);
 });
 
-Deno.test("interceptors retain the original instruction sequence and never see compiled callbacks", () => {
+Deno.test("interceptors retain generator instructions and exclude compiled field callbacks", () => {
   const save = createSaveGame(true);
   const plainWriter = new ArrayDataWriter();
   const expected: string[] = [];
@@ -320,7 +397,8 @@ Deno.test("interceptors retain the original instruction sequence and never see c
   parse(new ArrayDataReader(bytes), parseSave({}, false), record(expected));
   deepStrictEqual(parseSaveGame(bytes, record(actual)), save);
   deepStrictEqual(actual, expected);
-  equal(actual.includes("with"), false);
+  equal(actual.filter((type) => type === "with").length, 1);
+  equal(actual.at(-1), "with");
 });
 
 Deno.test("compiled length checks and historical nullable pair behavior match generators", () => {

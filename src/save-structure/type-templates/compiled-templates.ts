@@ -278,7 +278,7 @@ function compileTypeBody(
       },
       write(writer, value) {
         if (value == null) {
-          writer.writeInt32(4);
+          writer.writeInt32(0);
           writer.writeInt32(-1);
           return;
         }
@@ -301,9 +301,8 @@ function compileTypeBody(
           const write = struct ? resolve(structName!).write : codec.write;
           for (const item of values) write(writer, item);
         }
-        // Preserve the legacy collection bookkeeping, including its extra -4.
         writer.replaceInt32(
-          checkedDataLength(writer.position - start - 12),
+          checkedDataLength(writer.position - start - 8),
           start,
         );
       },
@@ -363,7 +362,7 @@ function compileTypeBody(
         },
         write(writer, value) {
           if (value == null) {
-            writer.writeInt32(4);
+            writer.writeInt32(0);
             writer.writeInt32(-1);
             return;
           }
@@ -385,7 +384,7 @@ function compileTypeBody(
           for (const pair of pairs) valueCodec.write(writer, pair[1]);
           for (const pair of pairs) keyCodec.write(writer, pair[0]);
           writer.replaceInt32(
-            checkedDataLength(writer.position - start - 12),
+            checkedDataLength(writer.position - start - 8),
             start,
           );
         },

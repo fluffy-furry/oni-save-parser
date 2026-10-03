@@ -14,7 +14,17 @@ export class ZlibDataReader extends ArrayDataReader {
     const inflated = inflateSync(data, {
       windowBits: 15,
       ...options,
-    });
-    super(inflated);
+      info: true,
+    }) as unknown as {
+      buffer: Uint8Array;
+      engine: { bytesWritten: number };
+    };
+    const remaining = data.byteLength - inflated.engine.bytesWritten;
+    if (remaining !== 0) {
+      throw new Error(
+        `Unexpected trailing compressed data: ${remaining} bytes.`,
+      );
+    }
+    super(inflated.buffer);
   }
 }

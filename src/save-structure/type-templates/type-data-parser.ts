@@ -71,7 +71,6 @@ function* parseArrayLike(
   lookup?: TemplateLookup,
 ): ParseIterator<unknown[] | Uint8Array | null> {
   const elementType = requireSubType(info, 0);
-  // ONI excludes the count from non-null payload lengths, but includes it for null.
   // Legacy writers can store -4 for an empty collection. ONI ignores this word.
   yield readInt32();
   const length = checkedCount(yield readInt32(), "array element count", true);
@@ -112,7 +111,7 @@ function* unparseArrayLike(
 ): UnparseIterator {
   const elementType = requireSubType(info, 0);
   if (values == null) {
-    yield writeInt32(4);
+    yield writeInt32(0);
     yield writeInt32(-1);
     return;
   }
@@ -130,7 +129,7 @@ function* unparseArrayLike(
   const lengthToken: DataLengthToken = yield writeDataLengthBegin();
   yield writeInt32(elements.length);
   // The element count is written after the length but not included in it.
-  lengthToken.startPosition = yield getWriterPosition();
+  lengthToken.startPosition = (yield getWriterPosition()) - 4;
   if (byteArray) {
     yield writeBytes(elements as Uint8Array);
   } else if (isValueType(elementType.info)) {
@@ -224,7 +223,7 @@ const typeParsers: Record<SerializationTypeCode, TypeParser> = {
     },
     unparse: function* (value, info, templates, lookup) {
       if (value == null) {
-        yield writeInt32(4);
+        yield writeInt32(0);
         yield writeInt32(-1);
         return;
       }
@@ -244,7 +243,7 @@ const typeParsers: Record<SerializationTypeCode, TypeParser> = {
       checkedCount(pairs.length, "dictionary element count");
       const lengthToken: DataLengthToken = yield writeDataLengthBegin();
       yield writeInt32(pairs.length);
-      lengthToken.startPosition = yield getWriterPosition();
+      lengthToken.startPosition = (yield getWriterPosition()) - 4;
       for (const pair of pairs) {
         yield* unparseByType(pair[1], valueType, templates, lookup);
       }

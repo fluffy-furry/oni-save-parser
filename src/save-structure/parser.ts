@@ -5,6 +5,7 @@ import {
   readCompressed,
   readInt32,
   readKleiString,
+  readWith,
   type UnparseIterator,
   writeBytes,
   writeChars,
@@ -65,7 +66,7 @@ export interface SaveGameParserOptions {
    * How strict the parser should be in ensuring the correct save file version is used.
    * - "minor": Require the major and minor version to match.  This is the safest option.
    * - "major": Allow unknown minor versions as long as the major version matches.
-   * - "none": Disable version checking.  This can result in corrupt data.
+   * - "none": Disable compatibility checking. Header and body versions must still agree.
    */
   versionStrictness?: "none" | "major" | "minor";
 }
@@ -131,12 +132,21 @@ function* parseSaveBody(context: ParseContext): ParseIterator<SaveGameBody> {
   const versionMajor: number = yield readInt32();
   const versionMinor: number = yield readInt32();
 
-  // The header contains this same data and validates it.
-  // validateVersion(versionMajor, versionMinor);
+  validateMatchingVersions(context.gameInfo, {
+    major: versionMajor,
+    minor: versionMinor,
+  });
 
   const gameObjects: GameObjectGroup[] = yield* parseGameObjects(context);
 
   const gameData: SaveGameData = yield* parseGameData(context);
+
+  yield readWith((reader) => {
+    const remaining = reader.viewAllBytes().byteLength;
+    if (remaining !== 0) {
+      throw new Error(`Unexpected trailing save data: ${remaining} bytes.`);
+    }
+  });
 
   const body: SaveGameBody = {
     world,
@@ -175,6 +185,7 @@ export function* unparseSaveGame(
   useTemplateIndex = false,
   useCompiledTemplates = false,
 ): UnparseIterator {
+  validateMatchingVersions(saveGame.header.gameInfo, saveGame.version);
   yield* unparseHeader(saveGame.header);
   yield* unparseTemplates(saveGame.templates);
 
@@ -189,6 +200,20 @@ export function* unparseSaveGame(
     yield writeCompressed(unparseSaveBody(saveGame, context));
   } else {
     yield* unparseSaveBody(saveGame, context);
+  }
+}
+
+function validateMatchingVersions(
+  header: SaveGameHeader["gameInfo"],
+  body: SaveGame["version"],
+): void {
+  if (
+    header.saveMajorVersion !== body.major ||
+    header.saveMinorVersion !== body.minor
+  ) {
+    throw new Error(
+      `Save header version ${header.saveMajorVersion}.${header.saveMinorVersion} does not match body version ${body.major}.${body.minor}.`,
+    );
   }
 }
 

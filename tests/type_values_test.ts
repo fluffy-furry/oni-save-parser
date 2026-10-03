@@ -187,29 +187,40 @@ for (const kind of [Type.Array, Type.List, Type.HashSet, Type.Queue]) {
       info: kind === Type.Array ? kind : kind | Type.IS_GENERIC_TYPE,
       subTypes: [int],
     };
-    // Legacy writers exclude the count and subtract an additional four bytes
-    // from the advisory payload length, hence 4 for two ints and -4 for empty.
     for (
       const { value, hex } of [
-        { value: [7, 8], hex: "04000000020000000700000008000000" },
-        { value: [], hex: "fcffffff00000000" },
-        { value: null, hex: "04000000ffffffff" },
+        { value: [7, 8], hex: "08000000020000000700000008000000" },
+        { value: [], hex: "0000000000000000" },
+        { value: null, hex: "00000000ffffffff" },
       ]
     ) {
       deepStrictEqual(encode(value, info), Uint8Array.fromHex(hex));
       deepStrictEqual(decode(hex, info), value);
     }
   });
+  Deno.test(`template ${name} still reads legacy advisory collection lengths`, () => {
+    const info: TypeInfo = {
+      info: kind === Type.Array ? kind : kind | Type.IS_GENERIC_TYPE,
+      subTypes: [int],
+    };
+    deepStrictEqual(decode("04000000020000000700000008000000", info), [7, 8]);
+    deepStrictEqual(decode("fcffffff00000000", info), []);
+    equal(decode("04000000ffffffff", info), null);
+  });
 }
 
 Deno.test("template byte arrays retain Uint8Array representation", () => {
   const info: TypeInfo = { info: Type.Array, subTypes: [{ info: Type.Byte }] };
-  const hex = "ffffffff03000000010203";
+  const hex = "0300000003000000010203";
   deepStrictEqual(
     encode(new Uint8Array([1, 2, 3]), info),
     Uint8Array.fromHex(hex),
   );
   deepStrictEqual(decode(hex, info), new Uint8Array([1, 2, 3]));
+  deepStrictEqual(
+    decode("ffffffff03000000010203", info),
+    new Uint8Array([1, 2, 3]),
+  );
   throws(
     () => encode([1, 2, 3], info),
     /Expected byte array value to be Uint8Array/,
@@ -230,9 +241,9 @@ Deno.test("reference and value-type arrays use distinct object-length layouts", 
     const { info, hex } of [
       {
         info: references,
-        hex: "0c0000000200000004000000070000000400000008000000",
+        hex: "100000000200000004000000070000000400000008000000",
       },
-      { info: structs, hex: "04000000020000000700000008000000" },
+      { info: structs, hex: "08000000020000000700000008000000" },
     ]
   ) {
     deepStrictEqual(encode(value, info, templates), Uint8Array.fromHex(hex));
@@ -249,15 +260,21 @@ Deno.test("dictionaries serialize all values before their corresponding keys", (
     const { value, hex } of [
       {
         value: [[1, 11], [2, 22]],
-        hex: "0c000000020000000b000000160000000100000002000000",
+        hex: "10000000020000000b000000160000000100000002000000",
       },
-      { value: [], hex: "fcffffff00000000" },
-      { value: null, hex: "04000000ffffffff" },
+      { value: [], hex: "0000000000000000" },
+      { value: null, hex: "00000000ffffffff" },
     ]
   ) {
     deepStrictEqual(encode(value, info), Uint8Array.fromHex(hex));
     deepStrictEqual(decode(hex, info), value);
   }
+  deepStrictEqual(
+    decode("0c000000020000000b000000160000000100000002000000", info),
+    [[1, 11], [2, 22]],
+  );
+  deepStrictEqual(decode("fcffffff00000000", info), []);
+  equal(decode("04000000ffffffff", info), null);
 });
 
 Deno.test("pairs preserve their field order and the documented ONI null quirk", () => {
