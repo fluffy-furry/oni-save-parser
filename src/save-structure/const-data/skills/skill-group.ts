@@ -17,6 +17,9 @@ export const MinionSkillGroupNames = [
   "Technicals",
   "MedicalAid",
   "Basekeeping",
+  "Rocketry",
+  "SwimmingSkills",
+  "BionicSkills",
 ] as const;
 export type MinionSkillGroup = HashedString;
 

@@ -26,7 +26,7 @@ export interface AIAmountInstance extends MinionModificationInstance {
 
 export interface AISicknessInstance extends MinionModificationInstance {
   value: {
-    diseaseId: string;
+    diseaseId?: string;
     exposureInfo: {
       sicknessID: string;
       sourceInfo: string;

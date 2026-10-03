@@ -9,6 +9,7 @@ export interface StorageBehavior extends GameObjectBehavior {
   name: "Storage";
   templateData: {
     onlyFetchMarkedItems: boolean;
+    shouldSaveItems?: boolean;
     workTimeRemaining: number;
     numberOfUses: number;
   };

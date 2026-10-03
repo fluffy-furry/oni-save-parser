@@ -18,10 +18,11 @@ export interface SaveGameInfo {
   saveMajorVersion: number;
   saveMinorVersion: number;
   clusterId: string;
-  //worldTraits: null; // Not sure what this is
+  worldTraits?: unknown;
   sandboxEnabled: boolean;
   colonyGuid: string;
-  dlcId: string;
+  dlcId: string | null;
+  dlcIds?: string[];
 }
 
 /**

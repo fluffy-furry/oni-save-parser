@@ -48,7 +48,7 @@ Deno.test("attribute, skill, trait, disease, and injury names remain distinct", 
   equal(englishLabels.skill.Mining1, "Hard Digging");
   equal(englishLabels.skill.Mining2, "Superhard Digging");
   equal(englishLabels.skill.Mining3, "Super-Duperhard Digging");
-  equal(englishLabels.skillGroup.Mining, "Digger");
+  equal(englishLabels.skillGroup.Mining, "Digging");
   equal(englishLabels.attribute.Learning, "Science");
   equal(englishLabels.trait.FastLearner, "Quick Learner");
   equal(englishLabels.trait.BedsideManner, "Caregiver");
@@ -69,8 +69,23 @@ Deno.test("unverified, obsolete, and placeholder names stay unresolved", () => {
   equal(englishLabels.skill.Astronauting1, undefined);
   equal(englishLabels.skill.Astronauting2, undefined);
   equal(englishLabels.healthState.Invincible, undefined);
-  equal(englishLabels.element.Cobalt, undefined);
-  equal(englishLabels.geyser.slush_salt_water, undefined);
+  equal(englishLabels.element.UnrecognizedElement, undefined);
+  equal(englishLabels.geyser.unrecognized_geyser, undefined);
+});
+
+Deno.test("current element, geyser, and skill labels resolve verified IDs", () => {
+  equal(englishLabels.element.Cobalt, "Cobalt");
+  equal(englishLabels.element.Cobaltite, "Cobalt Ore");
+  equal(englishLabels.element.MurkyBrine, "Polluted Brine");
+  equal(englishLabels.geyser.slush_salt_water, "Cool Salt Slush Geyser");
+  equal(englishLabels.prefab.GeyserGeneric_molten_cobalt, "Cobalt Volcano");
+  equal(englishLabels.skill.Mining4, "Hazmat Digging");
+  equal(englishLabels.skill.AtomicResearch, "Applied Sciences Research");
+  equal(englishLabels.skill.BionicsA1, "Booster Processing I");
+  equal(englishLabels.skill.Swimming2, "Divemaster");
+  equal(englishLabels.skillGroup.Rocketry, "Rocketry");
+  equal(englishLabels.skillGroup.SwimmingSkills, "Swimming");
+  equal(englishLabels.disease.RadiationSickness, "Radioactive Contaminants");
 });
 
 Deno.test("display catalog contains frozen plain names scoped to existing catalogs", () => {

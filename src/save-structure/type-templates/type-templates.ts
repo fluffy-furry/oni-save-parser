@@ -139,7 +139,6 @@ export enum SerializationTypeCode {
   Colour = 23,
 }
 
-// TODO: This needs to be changed based on the current version due to cosmos update changing the VALUE_MASK constant.
 export function getTypeCode(
   type: SerializationTypeInfo,
 ): SerializationTypeCode {

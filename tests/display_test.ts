@@ -47,7 +47,7 @@ Deno.test("display names distinguish equal hashes in different namespaces", () =
   equal(getDisplayInfo("geyser", "hot_steam").label, "Steam Vent");
   equal(getDisplayInfo("attribute", "Digging").label, "Excavation");
   equal(getDisplayInfo("skill", "Mining1").label, "Hard Digging");
-  equal(getDisplayInfo("skillGroup", HashedString("Mining")).label, "Digger");
+  equal(getDisplayInfo("skillGroup", HashedString("Mining")).label, "Digging");
   equal(getDisplayInfo("prefab", "Headquarters").label, "Printing Pod");
   equal(getDisplayInfo("trait", "CantResearch").label, "Yokel");
   equal(

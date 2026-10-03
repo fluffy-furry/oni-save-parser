@@ -1,4 +1,4 @@
-import { MinionSkillGroup } from "../../../const-data/skills/skill-group.ts";
+import type { MinionSkillGroup } from "../../../const-data/skills/skill-group.ts";
 
 import type { GameObjectBehavior } from "../game-object-behavior.ts";
 
@@ -11,6 +11,8 @@ export interface MinionResumeBehavior extends GameObjectBehavior {
   templateData: {
     MasteryByRoleID: [string, boolean][];
     MasteryBySkillID: [string, boolean][];
+    GrantedSkillIDs?: string[];
+    AptitudeByRoleGroup?: [MinionSkillGroup, number][];
     AptitudeBySkillGroup: [MinionSkillGroup, number][];
 
     totalExperienceGained: number;
@@ -18,7 +20,7 @@ export interface MinionResumeBehavior extends GameObjectBehavior {
     currentRole: string;
     targetRole: string;
 
-    currentHat: string;
-    targetHat: string;
+    currentHat: string | null;
+    targetHat: string | null;
   };
 }

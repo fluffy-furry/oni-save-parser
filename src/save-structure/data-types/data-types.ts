@@ -1,3 +1,8 @@
+export interface Tag {
+  name: string | null;
+  hash: number;
+}
+
 export interface Vector2 {
   x: number;
   y: number;

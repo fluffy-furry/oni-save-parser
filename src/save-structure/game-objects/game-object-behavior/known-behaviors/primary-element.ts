@@ -14,6 +14,7 @@ export interface PrimaryElementBehavior extends GameObjectBehavior {
     ElementID: SimHashes;
     Units: number;
     _Temperature: number;
+    KeepZeroMassObject?: boolean;
 
     diseaseID: HashedString;
     diseaseCount: number;

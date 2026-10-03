@@ -1,5 +1,5 @@
 import type { AccessoryType } from "../../../const-data/index.ts";
-import { HashedString } from "../../../data-types/index.ts";
+import type { HashedString, Tag } from "../../../data-types/index.ts";
 
 import type { GameObjectBehavior } from "../game-object-behavior.ts";
 
@@ -20,7 +20,10 @@ export interface MinionIdentityBehavior extends GameObjectBehavior {
 
     voiceIdx: number;
 
-    bodyData: BodyData;
+    bodyData?: BodyData;
+    model?: Tag;
+    stickerType?: string;
+    personalityResourceId?: HashedString;
 
     assignableProxy: {
       id: number;

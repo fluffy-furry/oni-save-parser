@@ -1,28 +1,39 @@
-import type { Vector2I } from "../../save-structure/data-types/index.ts";
+import type { Tag, Vector2I } from "../../save-structure/data-types/index.ts";
 
 export interface SaveGameData {
   // TODO: Several type-template types in here.  Type them.
 
   gasConduitFlow: unknown;
   liquidConduitFlow: unknown;
-  simActiveRegionMin: Vector2I;
-  simActiveRegionMax: Vector2I;
+  simActiveRegionMin?: Vector2I;
+  simActiveRegionMax?: Vector2I;
   fallingWater: unknown;
+  bubbleManager?: unknown;
   unstableGround: unknown;
   worldDetail: unknown;
   customGameSettings: CustomGameSettings;
+  storySetings?: unknown;
+  spaceScannerNetworkManager?: unknown;
   debugWasUsed: boolean;
-  autoPrioritizeRoles: unknown;
+  autoPrioritizeRoles: boolean;
   advancedPersonalPriorities: boolean;
   savedInfo: {
     discoveredSurface: boolean;
+    discoveredOilField?: boolean;
+    curedDisease?: boolean;
+    blockedCometWithBunkerDoor?: boolean;
+    creaturePoopAmount?: [Tag, number][];
+    powerCreatedbyGeneratorType?: [Tag, number][];
   };
+  dateGenerated?: string | null;
+  changelistsPlayedOn?: number[];
 }
 
 export interface CustomGameSettings {
   is_custom_game: boolean;
   customGameMode: number; // 0 normal, 1 easy, 255 custom
-  CurrentQualityLevelsBySetting: QualityLevelSettings[];
+  CurrentQualityLevelsBySetting: [string, string][];
+  CurrentMixingLevelsBySetting?: [string, string][];
 }
 
 export type QualityLevelSetting<TKey, TValues extends readonly string[]> = [
